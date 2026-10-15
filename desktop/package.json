@@ -1,0 +1,102 @@
+{
+  "name": "uln-desktop",
+  "version": "2.9.0",
+  "private": true,
+  "description": "ULN — United Lawyer Network. Русская сборка Ember (https://github.com/CRTnoise/ember-p2p), GPL-3.0-or-later",
+  "author": "CRTnoise",
+  "license": "GPL-3.0-or-later",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "serve": "node src/main.js",
+    "test": "node test/protocol.test.js && node test/taste.test.js && node test/fires.test.js && node test/web.test.js",
+    "test:nearby": "node test/nearby-area.test.js",
+    "build": "electron-builder --win --publish never",
+    "build-linux": "electron-builder --linux --publish never"
+  },
+  "dependencies": {
+    "b4a": "^1.9.0",
+    "corestore": "^7.12.0",
+    "ffmpeg-static": "^5.3.0",
+    "hypercore": "^11.35.1",
+    "hyperswarm": "^4.17.0",
+    "sodium-universal": "^5.0.1"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0"
+  },
+  "productName": "ULN",
+  "build": {
+    "appId": "ru.a2chatsky.uln",
+    "productName": "ULN",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "build/icon.png"
+    ],
+    "extraFiles": [
+      {
+        "from": "../LICENSE",
+        "to": "LICENSE.txt"
+      },
+      {
+        "from": "../NOTICE.md",
+        "to": "NOTICE.md"
+      }
+    ],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ULN",
+      "license": "../LICENSE",
+      "artifactName": "ULN-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "ULN-${version}-portable.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "build/icon.png",
+      "category": "Network",
+      "executableName": "uln",
+      "maintainer": "CRTnoise <288690692+CRTnoise@users.noreply.github.com>",
+      "synopsis": "Serverless peer-to-peer social network",
+      "artifactName": "ULN-${version}.${ext}",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "ULN",
+          "Keywords": "p2p;social;chat;messages;"
+        }
+      }
+    },
+    "publish": null,
+    "deb": {
+      "artifactName": "uln_${version}_${arch}.${ext}",
+      "packageCategory": "net",
+      "priority": "optional"
+    }
+  },
+  "desktopName": "uln.desktop",
+  "homepage": "https://social.a2chatsky.ru"
+}

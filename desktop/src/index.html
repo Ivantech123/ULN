@@ -1,0 +1,2931 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; font-src data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<title>ULN · United Lawyer Network</title>
+<style>
+  @font-face{font-family:"EmberArabic";unicode-range:U+0600-06FF,U+0750-077F,U+08A0-08FF,U+FB50-FDFF,U+FE70-FEFF;
+    src:local("Segoe UI"),local("SegoeUI"),local("Noto Sans Arabic"),local("NotoSansArabic-Regular"),local("Noto Naskh Arabic"),local("Geeza Pro"),local("Tahoma"),local("DejaVu Sans"),local("DejaVuSans"),local("Arial")}
+  @font-face{font-family:"EmberCJK";unicode-range:U+2E80-9FFF,U+F900-FAFF,U+FF00-FFEF;
+    src:local("Microsoft YaHei"),local("MicrosoftYaHei"),local("PingFang SC"),local("PingFangSC-Regular"),local("Noto Sans CJK SC"),local("NotoSansCJKsc-Regular"),local("Noto Sans SC"),local("Source Han Sans SC"),local("WenQuanYi Micro Hei")}
+  /* ============ SEMANTIC TOKENS ============
+     Rule: no raw colors in components. Every theme is designed as its own
+     palette (desaturated tonal variants, contrast-checked) — never inverted. */
+  :root{
+    --canvas:#e9e7e2; --paper:#ffffff; --panel:#f2f0eb;
+    --ink:#000000;            /* primary text + structure */
+    --muted:#605c55;          /* secondary text (6.6:1 on paper) */
+    --soft:#6e6a62;           /* tertiary text   (labels, hints) */
+    --inv:#ffffff;            /* text on ink */
+    --line:#000000;           /* borders */
+    --shadow:rgba(0,0,0,.14);
+    --accent:#c85a19;         /* functional: notifications, unread */
+    /* Arabic and Chinese glyphs go to a font that can actually shape them (monospace
+       fonts either lack them or only carry isolated Arabic letters); Latin stays mono */
+    --mono:"EmberArabic","EmberCJK",ui-monospace,Menlo,Consolas,monospace;
+    --dur:180ms; --dur-slow:280ms;
+    --ease-out:cubic-bezier(.22,1,.36,1); --ease-in:cubic-bezier(.55,0,.55,.2);
+  }
+  body[data-theme="sepia"]{
+    --canvas:#d9cfbc; --paper:#f3ecdd; --panel:#e7dcc6;
+    --ink:#271e12; --muted:#5d4f3a; --soft:#6c5d46;
+    --inv:#f3ecdd; --line:#271e12; --shadow:rgba(39,30,18,.16); --accent:#9c4a1d;
+  }
+  body[data-theme="mist"]{
+    --canvas:#d9dee2; --paper:#f4f6f7; --panel:#e4e9ec;
+    --ink:#14171a; --muted:#4f5a66; --soft:#5d6873;
+    --inv:#f4f6f7; --line:#14171a; --shadow:rgba(20,23,26,.14); --accent:#27649f;
+  }
+  body[data-theme="carbon"]{
+    --canvas:#131311; --paper:#1c1c19; --panel:#262622;
+    --ink:#e8e5dc; --muted:#a9a599; --soft:#8f8b7e;
+    --inv:#131311; --line:#c9c5b8; --shadow:rgba(0,0,0,.5); --accent:#e8a54b;
+  }
+  body[data-theme="slate"]{
+    --canvas:#0f1317; --paper:#171c22; --panel:#202730;
+    --ink:#dfe4e9; --muted:#9aa5b0; --soft:#87919c;
+    --inv:#0f1317; --line:#b9c2cc; --shadow:rgba(0,0,0,.5); --accent:#6aa5dd;
+  }
+  body[data-theme="phosphor"]{
+    --canvas:#0c110d; --paper:#121813; --panel:#1a231c;
+    --ink:#dae3d7; --muted:#9cb098; --soft:#87a083;
+    --inv:#0c110d; --line:#a8bfa3; --shadow:rgba(0,0,0,.55); --accent:#86e07f;
+  }
+  body[data-theme="ember"]{
+    --canvas:#151009; --paper:#1d1710; --panel:#282013;
+    --ink:#eae2d2; --muted:#b5a687; --soft:#9c8d6d;
+    --inv:#151009; --line:#c9b995; --shadow:rgba(0,0,0,.55); --accent:#f59e42;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--canvas);font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+       -webkit-font-smoothing:antialiased;color:var(--ink);height:100vh;overflow:hidden;padding:18px;
+       transition:background var(--dur-slow) var(--ease-out)}
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:var(--ink)}
+  ::-webkit-scrollbar-track{background:var(--paper);border-left:1px solid var(--line)}
+
+  /* ============ EMBER TITLEBAR (frameless window) ============ */
+  .titlebar{height:34px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;
+            -webkit-app-region:drag;user-select:none;background:var(--paper)}
+  .tblogo{display:flex;align-items:center;gap:8px;padding:0 14px;-webkit-app-region:no-drag;cursor:pointer;height:100%}
+  .tblogo:hover{background:var(--panel)}
+  .tblogo .mark{width:11px;height:11px;border:2px solid var(--ink);transform:rotate(45deg);transition:transform var(--dur-slow) var(--ease-out)}
+  .tblogo:hover .mark{transform:rotate(135deg)}
+  .tblogo .word{font:700 11px/1 var(--mono);letter-spacing:.3em;color:var(--ink)}
+  .tbtitle{flex:1;text-align:center;font:400 9px/1 var(--mono);letter-spacing:.24em;color:var(--soft)}
+  .winctl{display:flex;-webkit-app-region:no-drag;height:100%}
+  .winctl button{all:unset;width:44px;height:100%;display:flex;align-items:center;justify-content:center;
+                 cursor:pointer;color:var(--muted);font:400 12px/1 var(--mono);
+                 transition:background var(--dur) var(--ease-out),color var(--dur)}
+  .winctl button:hover{background:var(--panel);color:var(--ink)}
+  .winctl button.close:hover{background:var(--accent);color:var(--inv)}
+
+  .app{height:100%;background:var(--paper);border:1px solid var(--line);
+       box-shadow:8px 8px 0 var(--shadow);display:flex;flex-direction:column;overflow:hidden;
+       transition:background var(--dur-slow) var(--ease-out)}
+
+  /* ============ ANIMATION SYSTEM ============ */
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  @keyframes fadein{from{opacity:0}to{opacity:1}}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+  .anim-rise{animation:rise var(--dur) var(--ease-out) both}
+  .anim-view{animation:fadein var(--dur) var(--ease-out) both}
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}
+  }
+
+  /* ============ TOP BAR ============ */
+  .top{height:52px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:16px;padding:0 16px}
+  .logo{display:flex;align-items:center;gap:9px;width:180px;cursor:pointer}
+  .logo .mark{width:16px;height:16px;border:2px solid var(--ink);transform:rotate(45deg);transition:transform var(--dur-slow) var(--ease-out)}
+  .logo:hover .mark{transform:rotate(135deg)}
+  .logo .word{font:700 15px/1 var(--mono);letter-spacing:.26em}
+  .search{flex:1;max-width:420px;height:30px;border:1px solid var(--line);display:flex;align-items:center;gap:8px;padding:0 10px;
+          transition:box-shadow var(--dur) var(--ease-out),max-width var(--dur-slow) var(--ease-out),opacity var(--dur) var(--ease-out),border-color var(--dur)}
+  .search.hidden{max-width:0;opacity:0;border-color:transparent;padding:0;pointer-events:none;overflow:hidden}
+  .search:focus-within{box-shadow:3px 3px 0 var(--shadow)}
+  .search .dot{width:10px;height:10px;border:1.5px solid var(--ink);border-radius:50%;flex:none}
+  .search input{border:0;outline:0;width:100%;font:400 12px/1 var(--mono);background:transparent;color:var(--ink)}
+  .search input::placeholder{color:var(--soft)}
+  .btn{height:30px;border:1px solid var(--line);display:inline-flex;align-items:center;gap:7px;padding:0 11px;
+       cursor:pointer;font:500 11px/1 var(--mono);letter-spacing:.1em;background:var(--paper);color:var(--ink);user-select:none;
+       transition:background var(--dur) var(--ease-out),transform 120ms var(--ease-out),box-shadow var(--dur) var(--ease-out)}
+  .btn:hover{background:var(--panel)}
+  .btn:active{transform:scale(.96)}
+  .btn.solid{background:var(--ink);color:var(--inv);border-color:var(--ink)}
+  .btn.solid:hover{box-shadow:3px 3px 0 var(--shadow)}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+  .btn:disabled{opacity:.4;cursor:default;transform:none}
+  .netstat{font:400 10px/1.5 var(--mono);color:var(--soft);margin-left:auto;text-align:right}
+  .hatch{width:30px;height:30px;border:1px solid var(--line);cursor:pointer;overflow:hidden;
+         background:repeating-linear-gradient(45deg,var(--ink),var(--ink) 1px,var(--paper) 1px,var(--paper) 6px);
+         transition:transform 120ms var(--ease-out)}
+  .hatch:active{transform:scale(.94)}
+  .hatch img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* ============ FRAME ============ */
+  .frame{flex:1;display:flex;min-height:0}
+  /* ledger rail: icons at rest, slides open on hover to reveal labels */
+  .rail{width:52px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;padding:10px 0;
+        overflow:hidden;transition:width var(--dur-slow) var(--ease-out);z-index:20;background:var(--paper)}
+  .rail:hover{width:158px}
+  .nav{display:flex;flex-direction:column;gap:2px;width:100%}
+  .nav button{all:unset;display:flex;align-items:center;height:44px;width:100%;cursor:pointer;
+              color:var(--ink);position:relative;transition:background var(--dur) var(--ease-out);white-space:nowrap}
+  .nav button:hover{background:var(--panel)}
+  .nav button.on{background:var(--ink);color:var(--inv)}
+  .nav .ic{font:400 16px/1 var(--mono);width:52px;flex:none;text-align:center}
+  .nav .lb{font:500 11px/1 var(--mono);letter-spacing:.14em;opacity:0;transform:translateX(-6px);
+           transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out)}
+  .rail:hover .nav .lb{opacity:1;transform:none}
+  .dot{width:7px;height:7px;background:var(--accent);position:absolute;top:9px;left:34px;display:none;
+       animation:pulse 1.6s ease-in-out infinite}
+  .dot.show{display:block}
+  .railfoot{margin-top:auto;padding:10px 0;border-top:1px solid var(--line);width:100%;display:flex;justify-content:center}
+  .keymini{width:30px;height:30px;border:1px solid var(--line);cursor:pointer;font:700 9px/28px var(--mono);
+           text-align:center;color:var(--muted);transition:color var(--dur),background var(--dur);flex:none}
+  .keymini:hover{color:var(--ink);background:var(--panel)}
+
+  /* stories rail */
+  .stories{width:84px;flex:none;border-right:1px solid var(--line);overflow-y:auto;padding:12px 0;
+           display:flex;flex-direction:column;gap:12px;align-items:center}
+  .story{width:56px;cursor:pointer;text-align:center}
+  .story .sav{width:52px;height:52px;border:2px solid var(--line);border-radius:50%;margin:0 auto;overflow:hidden;background:var(--paper);
+              font:700 20px/48px var(--mono);text-transform:uppercase;color:var(--ink);
+              transition:transform 140ms var(--ease-out),box-shadow var(--dur)}
+  .story:hover .sav{transform:translateY(-2px);box-shadow:3px 3px 0 var(--shadow)}
+  .story.unseen .sav{border-color:var(--accent)}
+  .story .sav img{width:100%;height:100%;object-fit:cover;display:block}
+  .story .sn{font:500 8px/1.3 var(--mono);letter-spacing:.06em;margin-top:5px;color:var(--muted);
+             overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .story.add .sav{border-style:dashed;color:var(--soft);font-size:22px;line-height:46px}
+  .story.self{position:relative}
+  /* fixed, not absolute: the rail scrolls (overflow-y:auto), and a scrolling box
+     clips anything that sticks out sideways. JS places it next to the tile. */
+  .storymenu{position:fixed;left:0;top:0;z-index:60;display:none;flex-direction:column;
+             background:var(--paper);border:1px solid var(--line);box-shadow:4px 4px 0 var(--shadow);
+             animation:rise var(--dur) var(--ease-out)}
+  .story.self:hover .storymenu{display:flex}
+  .storymenu button{all:unset;padding:9px 12px;font:500 9px/1 var(--mono);letter-spacing:.14em;
+                    color:var(--ink);cursor:pointer;white-space:nowrap}
+  .storymenu button:hover{background:var(--ink);color:var(--inv)}
+  .storyhead{font:700 8px/1 var(--mono);letter-spacing:.2em;color:var(--soft)}
+
+  /* story viewer overlay */
+  .sview{position:fixed;inset:0;background:color-mix(in srgb, var(--canvas) 20%, rgba(0,0,0,.82));display:none;
+         align-items:center;justify-content:center;z-index:50}
+  .sview.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .sframe{background:var(--paper);border:1px solid var(--line);box-shadow:8px 8px 0 var(--shadow);
+          max-width:min(520px,90vw);width:100%;animation:rise var(--dur-slow) var(--ease-out)}
+  .sbar{display:flex;gap:4px;padding:10px 12px 0}
+  .sbar span{flex:1;height:3px;background:var(--panel)}
+  .sbar span.done{background:var(--ink)}
+  .stop{display:flex;align-items:center;gap:10px;padding:10px 12px}
+  .simg{width:100%;max-height:60vh;object-fit:contain;display:block;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--panel)}
+  .scap{padding:12px 14px;font:400 13px/1.5 var(--mono);color:var(--ink)}
+  .sclose{margin-left:auto;cursor:pointer;font:400 16px/1 var(--mono);color:var(--muted)}
+  .sclose:hover{color:var(--ink)}
+
+  /* quote banner in compose + quote embed in cards */
+  .quotebar{display:none;border:1px solid var(--line);padding:8px 10px;font:400 11px/1.5 var(--mono);color:var(--muted);
+            animation:rise var(--dur) var(--ease-out)}
+  .quotebar.show{display:flex;align-items:center;gap:10px}
+  .quotebar .qx{cursor:pointer;color:var(--ink)}
+  .keylabel{font:700 10px/1 var(--mono);letter-spacing:.18em;margin-bottom:6px}
+
+  .center{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--line)}
+
+/* ============ COMPOSE ============ */
+  .composeouter{flex:none;overflow:hidden;max-height:600px;opacity:1;
+                transition:max-height var(--dur-slow) var(--ease-out),opacity var(--dur) var(--ease-out)}
+  .composeouter.retracted{max-height:0;opacity:0}
+  .compose{margin:14px 16px;border:1px solid var(--line);box-shadow:4px 4px 0 var(--shadow);
+           padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--paper)}
+  .compose textarea{width:100%;border:1px solid var(--line);resize:none;height:72px;padding:10px 11px;
+                    font:400 13px/1.5 var(--mono);outline:none;background:var(--paper);color:var(--ink);
+                    transition:box-shadow var(--dur) var(--ease-out)}
+  .compose textarea:focus{box-shadow:3px 3px 0 var(--shadow)}
+  .compose textarea::placeholder{color:var(--soft)}
+  .composerow{display:flex;align-items:center;gap:8px}
+  .count{font:400 11px/1 var(--mono);color:var(--soft);margin-left:auto}
+  .attachwrap{display:none;border:1px solid var(--line);padding:10px;animation:rise var(--dur) var(--ease-out)}
+  .attachwrap.show{display:block}
+  .attachwrap img{display:block;max-width:100%;max-height:340px;border:1px solid var(--line)}
+  .attachbar{display:flex;align-items:center;gap:10px;margin-top:8px}
+  .attachmeta{font:400 10px/1.4 var(--mono);color:var(--muted)}
+
+  /* ============ FEED ============ */
+  .scroll{flex:1;overflow-y:auto;padding-top:4px}
+  .pillwrap{position:sticky;top:0;z-index:5;display:flex;justify-content:center;padding:10px 0 0;pointer-events:none}
+  .pill{pointer-events:auto;display:none;background:var(--ink);color:var(--inv);border:1px solid var(--line);
+        font:500 11px/1 var(--mono);letter-spacing:.12em;padding:9px 16px;cursor:pointer;box-shadow:4px 4px 0 var(--shadow)}
+  .pill.show{display:inline-flex;align-items:center;gap:8px;animation:drop var(--dur) var(--ease-out)}
+  /* day separators: — TODAY — */
+  .daylabel{font:700 10px/1 var(--mono);letter-spacing:.22em;padding:14px 16px 8px;color:var(--soft)}
+  .daysep{display:flex;align-items:center;gap:12px;padding:18px 16px 10px}
+  .daysep::before,.daysep::after{content:'';flex:1;height:1px;background:color-mix(in srgb, var(--line) 35%, transparent)}
+  .daysep span{font:500 9px/1 var(--mono);letter-spacing:.3em;color:var(--soft)}
+
+  /* sectioned card: head / body / media (full-bleed) / actions */
+  .card{border:1px solid var(--line);margin:0 16px 18px;background:var(--paper);
+        box-shadow:4px 4px 0 var(--shadow);transition:box-shadow var(--dur) var(--ease-out),transform var(--dur) var(--ease-out)}
+  .card:hover{box-shadow:6px 6px 0 var(--shadow);transform:translate(-1px,-1px)}
+  .cardhead{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line)}
+  .avatar{width:34px;height:34px;border:1.5px solid var(--line);border-radius:50%;flex:none;cursor:pointer;overflow:hidden;
+          font:700 13px/32px var(--mono);text-align:center;text-transform:uppercase;background:var(--paper);color:var(--ink);
+          transition:transform 120ms var(--ease-out)}
+  .avatar:hover{transform:scale(1.08)}
+  .avatar.me{background:var(--ink);color:var(--inv)}
+  .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .headid{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .who{font:700 14px/1;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;cursor:pointer;color:var(--ink)}
+  .who:hover{text-decoration:underline}
+  .meta{font:400 11px/1 var(--mono);color:var(--muted)}
+  .state{margin-left:auto;display:flex;align-items:center;gap:6px;font:500 9px/1 var(--mono);letter-spacing:.16em;color:var(--muted);flex:none}
+  .state::before{content:'';width:8px;height:8px;background:var(--ink);display:block}
+  .prox{margin-left:auto;font:500 9px/1 var(--mono);letter-spacing:.1em;padding:4px 6px;background:var(--ink);color:var(--inv);flex:none}
+  .more{flex:none;width:28px;height:28px;border:0;background:none;color:var(--muted);cursor:pointer;
+        font:700 13px/1 var(--mono);letter-spacing:.1em;transition:color var(--dur)}
+  .more:hover{color:var(--ink)}
+  .state+.more,.prox+.more{margin-left:4px}
+  .more:only-child,.headid+.more{margin-left:auto}
+  .cardbody{padding:14px 16px}
+  .body{font:400 15px/1.55;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;white-space:pre-wrap;word-break:break-word;color:var(--ink);max-width:68ch}
+  .body code{font-family:var(--mono)}
+  .cardactions{display:flex;gap:8px;align-items:center;padding:10px 16px;border-top:1px solid var(--line)}
+  .cardactions .btn{height:28px;font-size:10px}
+  .saveglyph{margin-left:auto;width:28px;height:28px;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+             cursor:pointer;font:400 13px/1 var(--mono);display:flex;align-items:center;justify-content:center;flex:none;
+             transition:background var(--dur),color var(--dur),transform 120ms var(--ease-out)}
+  .saveglyph:hover{background:var(--panel)}
+  .saveglyph:active{transform:scale(.92)}
+  .saveglyph.on{background:var(--ink);color:var(--inv)}
+  .repostref{border:1px solid var(--line);padding:10px 12px;margin:0 16px 14px;font:400 12px/1.5 var(--mono);color:var(--muted)}
+  .cardbody+.repostref{margin-top:-4px}
+  /* media: full-bleed to card edges */
+  .postimg{width:100%;max-height:480px;object-fit:cover;display:block;cursor:pointer;border:0;
+           border-top:1px solid var(--line);transition:opacity var(--dur) var(--ease-out)}
+  .postimg.thumb{min-height:90px;background:var(--panel)}
+  .imgtag{font:500 9px/1 var(--mono);letter-spacing:.14em;color:var(--soft);padding:6px 16px 0}
+  .vidwrap{position:relative;cursor:pointer}
+  .vidwrap .postimg{margin:0}
+  .vprog{margin:0 16px}
+  /* overflow menu */
+  .cardmenu{position:absolute;right:10px;top:44px;z-index:15;display:none;flex-direction:column;min-width:150px;
+            background:var(--paper);border:1px solid var(--line);box-shadow:4px 4px 0 var(--shadow);
+            animation:drop var(--dur) var(--ease-out)}
+  .cardmenu.open{display:flex}
+  .cardmenu button{all:unset;padding:10px 14px;font:500 10px/1 var(--mono);letter-spacing:.14em;color:var(--ink);cursor:pointer}
+  .cardmenu button:hover{background:var(--ink);color:var(--inv)}
+  .cardmenu button.danger:hover{background:var(--accent)}
+  .cardwrap{position:relative}
+  .vidwrap{position:relative;margin-top:10px;cursor:pointer;max-width:100%}
+  .vidwrap .postimg{margin-top:0}
+  .vbadge{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .vbadge span{background:var(--ink);color:var(--inv);border:1px solid var(--line);font:500 11px/1 var(--mono);
+               letter-spacing:.12em;padding:9px 14px;box-shadow:4px 4px 0 var(--shadow)}
+  .vprog{height:3px;background:var(--panel);margin-top:4px;display:none}
+  .vprog.show{display:block}
+  .vprog i{display:block;height:100%;background:var(--accent);width:0;transition:width 160ms linear}
+  video.postvid{margin-top:10px;border:1px solid var(--line);max-width:100%;max-height:440px;display:block;background:var(--panel)}
+  .imgtag{font:500 9px/1 var(--mono);letter-spacing:.14em;color:var(--soft);margin-top:4px}
+  .empty{padding:40px 16px;font:400 12px/1.7 var(--mono);color:var(--muted)}
+
+  /* ============ THREADS ============ */
+  .thread{margin:0 16px 14px;border-left:2px solid var(--line);padding-left:12px;display:none;flex-direction:column;gap:10px}
+  .thread.open{display:flex;animation:rise var(--dur) var(--ease-out)}
+  .reply{border:1px solid var(--line);padding:9px 10px}
+  .reply .rhead{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
+  .reply .body{font-size:12px}
+  .replybox{display:flex;gap:8px}
+  .replybox input{flex:1;border:1px solid var(--line);height:28px;padding:0 9px;font:400 12px/1 var(--mono);
+                  outline:none;background:var(--paper);color:var(--ink)}
+  .replybox input::placeholder{color:var(--soft)}
+
+  /* ============ SIDE ============ */
+  .side{width:300px;flex:none;display:flex;flex-direction:column;overflow-y:auto}
+  .panel{border-bottom:1px solid var(--line);padding:14px 16px}
+  .panelhead{font:700 10px/1 var(--mono);letter-spacing:.22em;margin-bottom:10px;color:var(--ink)}
+  .followrow{display:flex;align-items:center;gap:8px;padding:6px 0;font:400 11px/1.4 var(--mono);color:var(--ink)}
+  .followrow .k{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .followrow .k:hover{text-decoration:underline}
+  .followrow .x{cursor:pointer;border:1px solid var(--line);width:20px;height:20px;flex:none;color:var(--ink);
+                display:flex;align-items:center;justify-content:center;font:400 11px/1 var(--mono);
+                transition:background var(--dur),color var(--dur)}
+  .followrow .x:hover{background:var(--ink);color:var(--inv)}
+  .addfollow{display:flex;gap:8px;margin-top:10px}
+  .addfollow input{flex:1;min-width:0;border:1px solid var(--line);height:28px;padding:0 8px;
+                   font:400 11px/1 var(--mono);outline:none;background:var(--paper);color:var(--ink)}
+  .field{width:100%;border:1px solid var(--line);height:28px;padding:0 8px;font:400 12px/1 var(--mono);
+         outline:none;margin-bottom:8px;background:var(--paper);color:var(--ink)}
+  .field::placeholder,.addfollow input::placeholder{color:var(--soft)}
+  .legend{font:400 10px/1.5 var(--mono);color:var(--muted);margin-top:8px}
+  .swatch{display:inline-block;width:9px;height:9px;border:1px solid var(--line);vertical-align:-1px}
+  .swatch.fill{background:var(--ink)}
+
+  /* ============ INBOX RAIL ============ */
+
+/* ============ DMs ============ */
+  .dmwrap{flex:1;display:none;min-height:0}
+  .dmwrap.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .dmlist{width:250px;flex:none;border-right:1px solid var(--line);overflow-y:auto}
+  .dmsection{font:700 9px/1 var(--mono);letter-spacing:.2em;padding:10px 12px 6px;color:var(--soft)}
+  .dmrow{border-bottom:1px solid var(--line);padding:11px 12px;cursor:pointer;position:relative;
+         transition:background var(--dur) var(--ease-out)}
+  .dmrow:hover{background:var(--panel)}
+  .dmrow.on{background:var(--ink);color:var(--inv)}
+  .dmrow .n{font:700 12px/1 var(--mono);margin-bottom:5px;display:flex;align-items:center;gap:8px}
+  .dmrow .p{font:400 10px/1.4 var(--mono);opacity:.6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dmrow .dot{position:absolute;right:12px;top:13px}
+  .reqactions{display:flex;gap:6px;margin-top:8px}
+  .reqactions .btn{height:24px;font-size:9px;padding:0 8px}
+  .dmthread{flex:1;display:flex;flex-direction:column;min-width:0}
+  .dmhead{height:44px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 14px}
+  .dmmsgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .bubble{max-width:70%;border:1px solid var(--line);padding:8px 11px;font:400 13px/1.5 var(--mono);
+          white-space:pre-wrap;word-break:break-word;color:var(--ink);animation:rise var(--dur) var(--ease-out) both}
+  .bubble.mine{align-self:flex-end;background:var(--ink);color:var(--inv)}
+  .bubble .bts{display:block;font-size:9px;opacity:.55;margin-top:4px;letter-spacing:.1em}
+  .dminput{flex:none;border-top:1px solid var(--line);display:flex;gap:8px;padding:10px 14px}
+  .dminput input{flex:1;border:1px solid var(--line);height:32px;padding:0 10px;font:400 13px/1 var(--mono);
+                 outline:none;background:var(--paper);color:var(--ink)}
+  .newdm{display:flex;gap:8px;padding:11px 12px;border-bottom:1px solid var(--line)}
+  .newdm input{flex:1;min-width:0;border:1px solid var(--line);height:26px;padding:0 8px;
+               font:400 10px/1 var(--mono);outline:none;background:var(--paper);color:var(--ink)}
+
+  /* ============ NOTIFICATIONS ============ */
+  .notifrow{display:flex;gap:12px;border-bottom:1px solid var(--line);padding:13px 16px;cursor:pointer;
+            transition:background var(--dur) var(--ease-out)}
+  .notifrow:hover{background:var(--panel)}
+  .notifrow.unread{border-left:3px solid var(--accent);padding-left:13px}
+  .ntype{flex:none;width:70px;font:700 9px/1 var(--mono);letter-spacing:.16em;padding-top:3px;color:var(--ink)}
+  .nbody{flex:1;min-width:0}
+  .nline{font:400 12px/1.5 var(--mono);color:var(--ink)}
+  .nsub{font:400 11px/1.5 var(--mono);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nts{flex:none;font:400 10px/1 var(--mono);color:var(--soft);padding-top:3px}
+
+  /* ============ PROFILE ============ */
+  .ppage{flex:1;overflow-y:auto;display:none}
+  .ppage.open{display:block;animation:fadein var(--dur) var(--ease-out)}
+  .banner{height:170px;border-bottom:1px solid var(--line);
+          background:repeating-linear-gradient(45deg,var(--ink),var(--ink) 1px,var(--paper) 1px,var(--paper) 9px)}
+  .phead{padding:0 24px;display:flex;gap:18px;align-items:flex-end;transform:translateY(-34px);margin-bottom:-16px}
+  .pavatar{width:92px;height:92px;border:1px solid var(--line);background:var(--paper);flex:none;overflow:hidden;
+           font:700 34px/90px var(--mono);text-align:center;text-transform:uppercase;box-shadow:5px 5px 0 var(--shadow);color:var(--ink)}
+  .pavatar.me{background:var(--ink);color:var(--inv)}
+  .pavatar img{width:100%;height:100%;object-fit:cover;display:block}
+  .pid{padding-bottom:8px}
+  .pname{font:700 22px/1.2 var(--mono);color:var(--ink)}
+  .phandle{font:400 12px/1.6 var(--mono);color:var(--muted)}
+  .pactions{margin-left:auto;padding-bottom:12px;display:flex;gap:8px}
+  .pstats{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin-top:14px}
+  .pstat{flex:1;padding:13px 0;text-align:center;border-right:1px solid var(--line)}
+  .pstat:last-child{border-right:0}
+  .pstat .n{font:700 18px/1 var(--mono);color:var(--ink)}
+  .pstat .l{font:500 9px/1 var(--mono);letter-spacing:.18em;color:var(--soft);margin-top:6px}
+  .pstatus{display:inline-block;font:500 10px/1 var(--mono);letter-spacing:.14em;border:1px solid var(--line);
+           padding:5px 8px;margin-top:10px;color:var(--ink)}
+  .ptabs{display:flex;border-bottom:1px solid var(--line)}
+  .ptab{padding:11px 18px;font:700 10px/1 var(--mono);letter-spacing:.2em;border-right:1px solid var(--line);color:var(--ink)}
+  .ptab.on{background:var(--ink);color:var(--inv)}
+
+  /* ============ NEARBY ============ */
+  .ptab.sub{background:none;color:var(--soft);font-weight:500;border-right:0;letter-spacing:.14em}
+  .nearpick{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px}
+  .placebox{position:relative}
+  .placebox input{width:320px;border:1px solid var(--line);height:32px;padding:0 10px;font:400 12px/1 var(--mono);
+                  outline:none;background:var(--paper);color:var(--ink)}
+  .placelist{position:absolute;top:100%;left:0;right:0;z-index:40;background:var(--paper);border:1px solid var(--line);
+             border-top:0;box-shadow:4px 4px 0 var(--shadow);display:none}
+  .placelist.open{display:block}
+  .placelist button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;gap:10px;width:100%;
+                    padding:9px 10px;font:400 12px/1.2 var(--mono);color:var(--ink);cursor:pointer}
+  .placelist button:hover,.placelist button.hl{background:var(--ink);color:var(--inv)}
+  .placelist .pp{opacity:.6;font-size:10px}
+  .radii{display:flex}
+  .rchip{all:unset;cursor:pointer;border:1px solid var(--line);margin-left:-1px;padding:10px 11px;
+         font:500 10px/1 var(--mono);letter-spacing:.12em;color:var(--ink)}
+  .rchip.on{background:var(--ink);color:var(--inv)}
+  .nearerr{color:var(--accent);margin-top:6px}
+  .nearhead{padding:16px 20px 12px;font:700 9px/1 var(--mono);letter-spacing:.2em;color:var(--soft);border-bottom:1px solid var(--line)}
+  .nprow{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line);animation:rise var(--dur) var(--ease-out)}
+  .nprow .npid{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+  .ntag{font:500 9px/1 var(--mono);letter-spacing:.14em;border:1px solid var(--line);padding:6px 8px;color:var(--ink);white-space:nowrap}
+  .ntag.warn{color:var(--accent);border-color:var(--accent)}
+  .nearbody.muted{opacity:.45}
+  .hiderow.on{background:color-mix(in srgb, var(--accent) 10%, transparent)}
+  .nearpick.typed{margin-top:14px}
+  .nearpick.typed .sd{white-space:nowrap}
+
+  /* ============ SETTINGS ============ */
+  .setrow{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:15px 20px}
+  .setrow .sl{flex:1}
+  .setrow .st{font:700 12px/1 var(--mono);letter-spacing:.08em;margin-bottom:5px;color:var(--ink)}
+  .setrow .sd{font:400 11px/1.5 var(--mono);color:var(--muted)}
+  .switch{width:44px;height:24px;border:1px solid var(--line);cursor:pointer;position:relative;flex:none}
+  .switch .knob{position:absolute;top:2px;left:2px;width:18px;height:18px;background:var(--ink);
+                transition:left 160ms var(--ease-out)}
+  .switch.on .knob{left:22px}
+  .numfield{width:80px;border:1px solid var(--line);height:28px;padding:0 8px;font:400 12px/1 var(--mono);
+            outline:none;background:var(--paper);color:var(--ink)}
+  .themes{display:flex;gap:10px}
+  .theme{width:56px;cursor:pointer;text-align:center}
+  .theme .tsw{height:34px;border:1px solid var(--line);display:flex;transition:transform 120ms var(--ease-out),box-shadow var(--dur)}
+  .theme:hover .tsw{transform:translateY(-2px);box-shadow:3px 3px 0 var(--shadow)}
+  .theme.on .tsw{box-shadow:3px 3px 0 var(--shadow);outline:2px solid var(--ink);outline-offset:2px}
+  .theme .tl{font:500 8px/1 var(--mono);letter-spacing:.12em;margin-top:6px;color:var(--muted)}
+  .tsw span{flex:1}
+
+  /* ============ INBOX RAIL (right) ============ */
+  .inboxrail{width:350px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;
+             transition:width var(--dur-slow) var(--ease-out);overflow:hidden;background:var(--paper)}
+  .inboxrail.collapsed{width:44px}
+  .irhead{height:44px;flex:none;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 12px;position:relative}
+  .irtitle{font:700 10px/1 var(--mono);letter-spacing:.22em;color:var(--ink);white-space:nowrap}
+  .ircollapse{margin-left:auto;cursor:pointer;font:400 14px/1 var(--mono);color:var(--muted);flex:none}
+  .ircollapse:hover{color:var(--ink)}
+  .inboxrail.collapsed .irtitle,.inboxrail.collapsed .irbody{display:none}
+  .inboxrail.collapsed .irhead{justify-content:center;padding:0;cursor:pointer}
+  .inboxrail.collapsed .ircollapse{margin:0}
+  .irdot{width:7px;height:7px;background:var(--accent);display:none;animation:pulse 1.6s ease-in-out infinite;flex:none}
+  .irdot.show{display:block}
+  .irbody{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+  /* in-rail phone thread */
+  .irthread{flex:1;display:none;flex-direction:column;min-height:0}
+  .irthread.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .irlist{flex:1;overflow-y:auto}
+  .irbody.threading .irlist{display:none}
+  .irback{cursor:pointer;font:400 14px/1 var(--mono);color:var(--muted);flex:none}
+  .irback:hover{color:var(--ink)}
+  .irmsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .irinput{flex:none;border-top:1px solid var(--line);display:flex;gap:6px;padding:9px 10px;align-items:center}
+  .irinput input[type=text]{flex:1;min-width:0;border:1px solid var(--line);height:30px;padding:0 9px;
+             font:400 12px/1 var(--mono);outline:none;background:var(--paper);color:var(--ink)}
+  .icobtn{width:30px;height:30px;flex:none;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+          cursor:pointer;font:400 13px/1 var(--mono);display:flex;align-items:center;justify-content:center;
+          transition:background var(--dur),transform 120ms var(--ease-out)}
+  .icobtn:hover{background:var(--panel)}
+  .icobtn:active{transform:scale(.94)}
+  .icobtn.rec{background:var(--accent);color:var(--inv);border-color:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+  .bubble img{max-width:100%;border:1px solid var(--line);display:block;margin-top:4px;cursor:pointer}
+  /* minimalist voice player: play square + bar waveform + time */
+  .vmsg{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:180px}
+  .vplay{width:26px;height:26px;flex:none;border:1px solid currentColor;background:transparent;color:inherit;
+         cursor:pointer;font:400 11px/1 var(--mono);display:flex;align-items:center;justify-content:center;
+         transition:transform 120ms var(--ease-out)}
+  .vplay:active{transform:scale(.92)}
+  .vwave{display:flex;align-items:center;gap:2px;height:26px;cursor:pointer;flex:1}
+  .vwave span{width:3px;background:currentColor;opacity:.3;transition:opacity 100ms linear}
+  .vwave span.on{opacity:1}
+  .vtime{font:400 9px/1 var(--mono);opacity:.6;flex:none;min-width:26px;text-align:right}
+  /* markdown in bodies */
+  .body b{font-weight:700}
+  .body i{font-style:italic}
+  .body s{opacity:.65}
+  .body code{background:var(--panel);border:1px solid var(--line);padding:0 4px;font-size:12px}
+  .mdbar{display:flex;gap:6px}
+  .mdbar .icobtn{width:26px;height:26px;font-size:11px}
+
+  /* ============ STORY COMPOSER ============ */
+  .scomposer{position:fixed;inset:0;background:color-mix(in srgb, var(--canvas) 20%, rgba(0,0,0,.82));display:none;
+             align-items:center;justify-content:center;z-index:60}
+  .scomposer.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .scbox{background:var(--paper);border:1px solid var(--line);box-shadow:8px 8px 0 var(--shadow);
+         width:min(560px,92vw);animation:rise var(--dur-slow) var(--ease-out)}
+  .schead{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .schead .t{font:700 11px/1 var(--mono);letter-spacing:.2em;color:var(--ink)}
+  #scanvas{display:block;width:100%;background:var(--panel);border-bottom:1px solid var(--line);cursor:grab;touch-action:none}
+  #scanvas.dragging{cursor:grabbing}
+  .sctools{display:flex;align-items:center;gap:10px;padding:12px 14px;flex-wrap:wrap}
+  .scin{flex:1;min-width:140px;border:1px solid var(--line);height:30px;padding:0 10px;font:400 12px/1 var(--mono);
+        outline:none;background:var(--paper);color:var(--ink)}
+  .swcol{width:22px;height:22px;border:1px solid var(--line);cursor:pointer;flex:none;
+         transition:transform 120ms var(--ease-out)}
+  .swcol:hover{transform:scale(1.12)}
+  .swcol.on{outline:2px solid var(--ink);outline-offset:2px}
+  .scsize{width:90px}
+  .schint{font:400 10px/1.4 var(--mono);color:var(--soft);padding:0 14px 12px}
+
+  /* ============ IMAGE VIEWER ============ */
+  .lightbox{position:fixed;inset:0;z-index:72;display:none;align-items:center;justify-content:center;
+            background:color-mix(in srgb, var(--canvas) 12%, rgba(0,0,0,.88))}
+  .lightbox.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .lbbox{display:flex;flex-direction:column;max-width:94vw;max-height:94vh;background:var(--paper);
+         border:1px solid var(--line);box-shadow:8px 8px 0 var(--shadow);animation:rise var(--dur-slow) var(--ease-out)}
+  .lbhead{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .lbhead .t{font:700 10px/1 var(--mono);letter-spacing:.2em;color:var(--ink)}
+  .lbhead .m{font:400 10px/1 var(--mono);letter-spacing:.12em;color:var(--muted)}
+  .lbstage{overflow:auto;background:#000;display:flex;align-items:center;justify-content:center;min-width:320px;min-height:200px}
+  .lbstage img{display:block;max-width:92vw;max-height:calc(94vh - 84px);object-fit:contain;cursor:zoom-in}
+  .lbstage.zoom{align-items:flex-start;justify-content:flex-start}
+  .lbstage.zoom img{max-width:none;max-height:none;cursor:zoom-out}
+  .lbstage img.loading{filter:blur(6px) saturate(.7);opacity:.75;transition:filter var(--dur) var(--ease-out),opacity var(--dur)}
+  .lbfoot{padding:8px 14px;border-top:1px solid var(--line);font:400 9px/1.4 var(--mono);letter-spacing:.14em;color:var(--soft)}
+
+  /* a post you were sent to (from a notification) */
+  .card.focus{box-shadow:0 0 0 2px var(--accent),6px 6px 0 var(--shadow);animation:focuspulse 1.4s var(--ease-out) 2}
+  @keyframes focuspulse{50%{box-shadow:0 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent),6px 6px 0 var(--shadow)}}
+
+  /* ============ EMBER VIDEO PLAYER (popup) ============ */
+  .vplayer{position:fixed;inset:0;background:color-mix(in srgb, var(--canvas) 15%, rgba(0,0,0,.86));display:none;
+           align-items:center;justify-content:center;z-index:70}
+  .vplayer.open{display:flex;animation:fadein var(--dur) var(--ease-out)}
+  .vpbox{background:var(--paper);border:1px solid var(--line);box-shadow:8px 8px 0 var(--shadow);
+         width:min(860px,94vw);animation:rise var(--dur-slow) var(--ease-out)}
+  .vphead{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+  .vphead .t{font:700 10px/1 var(--mono);letter-spacing:.2em;color:var(--ink)}
+  .vpvideo{display:block;width:100%;max-height:70vh;background:#000}
+  .vpctrl{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line)}
+  .vpplay{width:32px;height:32px;flex:none;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+          cursor:pointer;font:400 13px/1 var(--mono);display:flex;align-items:center;justify-content:center;
+          transition:transform 120ms var(--ease-out),background var(--dur)}
+  .vpplay:hover{background:var(--panel)}
+  .vpplay:active{transform:scale(.92)}
+  .vpseek{flex:1;height:18px;display:flex;align-items:center;cursor:pointer}
+  .vpseek .track{width:100%;height:3px;background:var(--panel);position:relative}
+  .vpseek .fill{position:absolute;left:0;top:0;height:100%;background:var(--ink);width:0}
+  .vpseek .knob{position:absolute;top:50%;transform:translate(-50%,-50%);width:9px;height:9px;background:var(--ink);left:0}
+  .vptime{font:400 10px/1 var(--mono);color:var(--muted);flex:none;min-width:74px;text-align:right}
+  .vpmute{cursor:pointer;font:400 13px/1 var(--mono);color:var(--muted);flex:none}
+  .vpmute:hover{color:var(--ink)}
+  .vpprog{padding:0 14px 12px;font:400 10px/1.4 var(--mono);color:var(--soft)}
+
+  /* ============ ONBOARDING ============ */
+  .onboard{position:fixed;inset:0;background:var(--canvas);display:none;align-items:center;justify-content:center;z-index:90}
+  .onboard.open{display:flex}
+  .obbox{background:var(--paper);border:1px solid var(--line);box-shadow:8px 8px 0 var(--shadow);
+         width:min(480px,92vw);padding:28px;animation:rise var(--dur-slow) var(--ease-out)}
+  .oblogo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .oblogo .mark{width:22px;height:22px;border:3px solid var(--ink);transform:rotate(45deg)}
+  .oblogo .word{font:700 20px/1 var(--mono);letter-spacing:.3em}
+  .obstep{display:none}
+  .obstep.on{display:block;animation:fadein var(--dur) var(--ease-out)}
+  .obh{font:700 13px/1.4 var(--mono);letter-spacing:.08em;margin-bottom:10px;color:var(--ink)}
+  .obp{font:400 12px/1.7 var(--mono);color:var(--muted);margin-bottom:16px}
+  .obrow{display:flex;gap:10px;margin-top:18px}
+  .obkey{border:1px solid var(--line);padding:10px;font:400 10px/1.5 var(--mono);word-break:break-all;
+         color:var(--muted);margin-bottom:14px;cursor:pointer}
+  .obkey:hover{color:var(--ink)}
+  .obpfp{width:72px;height:72px;border:1px solid var(--line);margin-bottom:12px;overflow:hidden;cursor:pointer;
+         font:700 26px/70px var(--mono);text-align:center;color:var(--soft);
+         background:repeating-linear-gradient(45deg,var(--panel),var(--panel) 1px,var(--paper) 1px,var(--paper) 6px)}
+  .obpfp img{width:100%;height:100%;object-fit:cover}
+
+  /* ============ v2.8: languages, taste, campfires ============ */
+  .restorebar{display:none;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);
+              background:color-mix(in srgb,var(--accent) 12%,transparent);font:400 11px/1.5 var(--mono);color:var(--ink)}
+  .restorebar.show{display:flex}
+  .restorebar .rb{flex:1}
+  .restorebar b{font-weight:700;letter-spacing:.08em}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{all:unset;cursor:pointer;border:1px solid var(--line);padding:7px 10px;font:500 10px/1 var(--mono);letter-spacing:.1em;
+        color:var(--ink);user-select:none;transition:background var(--dur) var(--ease-out)}
+  .chip:hover{background:var(--panel)}
+  .chip.on{background:var(--ink);color:var(--inv)}
+  .chip.term{letter-spacing:.02em}
+  .chip.term .x{margin-inline-start:7px;opacity:.55}
+  .chip.term:hover .x{opacity:1}
+  .chip.neg{color:var(--muted);border-style:dashed}
+  .sethead{padding:24px 20px 9px;font:700 9px/1 var(--mono);letter-spacing:.24em;color:var(--soft);border-bottom:1px solid var(--line)}
+  .setrow.col{flex-direction:column;align-items:stretch}
+  .setrow .rowline{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .setrow .rowline .field{margin:0;flex:1}
+  .langpick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 16px}
+  .langbtn{all:unset;cursor:pointer;border:1px solid var(--line);padding:14px 12px;font:700 15px/1 var(--mono);text-align:center;color:var(--ink)}
+  .langbtn:hover{background:var(--panel)}
+  .langbtn.on{background:var(--ink);color:var(--inv)}
+  .langbtn small{display:block;font:400 9px/1.3 var(--mono);letter-spacing:.1em;margin-top:6px;opacity:.7}
+  .obbox.wide{width:min(640px,94vw)}
+  .obtopics{max-height:38vh;overflow-y:auto;padding:2px}
+  .oblabel{font:700 9px/1 var(--mono);letter-spacing:.2em;color:var(--soft);margin:14px 0 8px}
+  .why{display:flex;gap:6px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);
+       font:500 9px/1 var(--mono);letter-spacing:.14em;color:var(--soft);background:var(--panel)}
+  .why .w{color:var(--ink)}
+  .why.flag{color:var(--accent)}
+  .dialrow{display:flex;align-items:center;gap:10px;padding:2px 16px 14px;font:500 9px/1 var(--mono);letter-spacing:.16em;color:var(--soft)}
+  .dialrow .rchip{padding:8px 10px}
+  .quietbox{margin:4px 16px 18px;border:1px dashed var(--line);padding:14px 16px;font:400 11px/1.6 var(--mono);color:var(--muted)}
+  .quietbox b{color:var(--ink);letter-spacing:.08em}
+  .quietbox .btn{margin-top:10px}
+  .firerow{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--line);cursor:pointer;animation:rise var(--dur) var(--ease-out)}
+  .firerow:hover{background:var(--panel)}
+  .firerow .fl{flex:1;min-width:0}
+  .firerow .ft{font:700 12px/1 var(--mono);letter-spacing:.08em;color:var(--ink)}
+  .firerow .fd{font:400 10px/1.5 var(--mono);color:var(--muted);margin-top:6px}
+  .flame{width:14px;height:14px;border:2px solid var(--soft);transform:rotate(45deg);flex:none}
+  .firerow.lit .flame{border-color:var(--accent);background:var(--accent);animation:pulse 1.8s ease-in-out infinite}
+  .firechat{display:flex;flex-direction:column;height:calc(100% - 37px)}
+  .firemsgs{flex:1;overflow-y:auto;padding:12px 20px}
+  .fmsg{padding:7px 0;border-bottom:1px dashed color-mix(in srgb,var(--line) 25%,transparent)}
+  .fmsg .fwho{font:700 11px/1 var(--mono);color:var(--ink);cursor:pointer}
+  .fmsg .fts{font:400 9px/1 var(--mono);color:var(--soft);margin-inline-start:8px}
+  .fmsg .fmtext{font:400 13px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif;color:var(--ink);margin-top:4px;unicode-bidi:plaintext;word-break:break-word}
+  .fmsg.mine .fwho{color:var(--accent)}
+  .fireinput{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--line)}
+  .fireinput input{flex:1;border:1px solid var(--line);height:32px;padding:0 10px;font:400 12px/1 var(--mono);outline:none;background:var(--paper);color:var(--ink);unicode-bidi:plaintext}
+  .firenote{padding:10px 20px;font:400 10px/1.5 var(--mono);color:var(--soft);border-bottom:1px solid var(--line)}
+  /* user text keeps its own direction whatever the interface language */
+  .body,.bubble,.scap,textarea,input{unicode-bidi:plaintext;text-align:start}
+  /* Chinese and Arabic: no tracking (it breaks Arabic joining and spaces CJK apart), slightly larger type */
+  html[lang=zh] body *,html[lang=ar] body *{letter-spacing:0!important}
+  .meta,.phandle,.keymini,.obkey,.nsub,#irlist .p,#dmlist .p,.firerow .fd span[data-noi18n]{unicode-bidi:plaintext}
+  html[dir=rtl] .switch .knob{left:auto;right:2px;transition:right 160ms var(--ease-out)}
+  html[dir=rtl] .switch.on .knob{right:22px}
+  html[dir=rtl] .body{max-width:none}
+  html[dir=rtl] .cardmenu{right:auto;left:10px}
+  html[dir=rtl] .prox,html[dir=rtl] .netstat{margin-left:0;margin-right:auto}
+  html[dir=rtl] .netstat{text-align:left}
+
+  /* ============ v2.9: in a browser ============ */
+  html.web .winctl{display:none}
+  html.web .titlebar,html.web .tblogo,html.web .winctl{-webkit-app-region:no-drag}
+  .offlinebar{display:none;position:fixed;top:0;left:0;right:0;z-index:95;background:var(--accent);color:var(--inv);
+              font:600 10px/1 var(--mono);letter-spacing:.14em;text-align:center;padding:7px}
+  html.offline .offlinebar{display:block}
+  .webcode{font:700 26px/1 var(--mono);letter-spacing:.24em;color:var(--ink);margin:8px 0 4px;user-select:all}
+  .weburl{font:500 12px/1.8 var(--mono);color:var(--ink);word-break:break-all}
+  .devrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed color-mix(in srgb,var(--line) 30%,transparent);font:400 11px/1.4 var(--mono);color:var(--muted)}
+  .devrow b{color:var(--ink);font-weight:600}
+  .devrow .btn{margin-inline-start:auto;height:24px;font-size:9px}
+  .narrow-only{display:none!important}
+  /* phones and narrow windows: one column, navigation at the bottom */
+  @media (max-width: 760px){
+    body{padding:0}
+    .app{border:0;box-shadow:none}
+    .tbtitle{visibility:hidden}
+    .top{gap:8px;padding:0 8px}
+    .top .netstat{display:none}
+    .top .search{max-width:none}
+    #followTop{padding:0 8px}
+    #focusCompose{padding:0 8px}
+    .frame{padding-bottom:54px}
+    .rail{position:fixed;left:0;right:0;bottom:0;width:auto;height:54px;flex-direction:row;padding:0;border-right:0;
+          border-top:1px solid var(--line);background:var(--paper);z-index:40}
+    .nav{flex-direction:row;justify-content:space-around;gap:0}
+    .nav button{flex:1 1 0;width:auto;min-width:0;justify-content:center;height:54px;padding:0}
+    .nav button .ic{margin:0;width:auto}
+    .nav button .lb{display:none}
+    .narrow-only{display:flex!important}
+    .railfoot{display:none}
+    .stories,.inboxrail{display:none!important}
+    .card{margin:0 8px 14px}
+    .cardactions{flex-wrap:wrap}
+    .cardactions .btn{white-space:nowrap}
+    .composerow{flex-wrap:wrap}
+    .dmwrap.open{flex-direction:column}
+    .dmlist{width:auto;max-height:34vh;border-right:0;border-bottom:1px solid var(--line)}
+    .setrow{flex-wrap:wrap;padding:14px 16px}
+    .setrow .sl{flex:1 1 220px}
+    .setrow.col .sl{flex:none}
+    .themes{flex-wrap:wrap}
+    .placebox input{width:100%}
+    .ptabs{overflow-x:auto}
+  }
+
+  .toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--inv);
+         font:500 11px/1 var(--mono);letter-spacing:.1em;padding:9px 14px;opacity:0;pointer-events:none;
+         transition:opacity var(--dur) var(--ease-out),transform var(--dur) var(--ease-out)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body data-theme="paper">
+<div class="app">
+
+  <div class="titlebar">
+    <div class="tblogo" onclick="go('feed')"><div class="mark"></div><span class="word">ULN</span></div>
+    <div class="tbtitle">UNITED LAWYER NETWORK · SERVERLESS · YOUR PEOPLE, NOT AN AUDIENCE</div>
+    <div class="winctl">
+      <button id="wMin" title="minimize">─</button>
+      <button id="wMax" title="maximize">▢</button>
+      <button id="wClose" class="close" title="close to tray">✕</button>
+    </div>
+  </div>
+
+  <div class="top">
+    <div class="search"><div class="dot" style="display:none"></div><div style="width:10px;height:10px;border:1.5px solid var(--ink);border-radius:50%;flex:none"></div><input id="search" placeholder="filter feed" /></div>
+    <div class="netstat" id="netstat">0 FEED PEERS<br>0 GOSSIP · 0 BUCKETS</div>
+    <button class="btn" id="followTop">+ FOLLOW</button>
+    <button class="btn solid" id="focusCompose">+ NEW POST</button>
+    <div class="hatch" id="topAvatar" title="your profile" onclick="openProfile(ME.key)"></div>
+  </div>
+
+  <div class="frame">
+
+    <div class="rail">
+      <div class="nav">
+        <button id="nav-feed" class="on" onclick="go('feed')"><span class="ic">▤</span><span class="lb">FEED</span><span class="dot" id="dot-feed"></span></button>
+        <button id="nav-discover" onclick="go('discover')"><span class="ic">◎</span><span class="lb">DISCOVER</span></button>
+        <button id="nav-nearby" onclick="go('nearby')"><span class="ic">◌</span><span class="lb">NEARBY</span><span class="dot" id="dot-nearby"></span></button>
+        <button id="nav-fires" onclick="go('fires')"><span class="ic">▲</span><span class="lb">CAMPFIRES</span><span class="dot" id="dot-fires"></span></button>
+        <button id="nav-notifs" onclick="go('notifs')"><span class="ic">◈</span><span class="lb">NOTIFS</span><span class="dot" id="dot-notifs"></span></button>
+        <button id="nav-saved" onclick="go('saved')"><span class="ic">◆</span><span class="lb">SAVED</span></button>
+        <button id="nav-profile" onclick="openProfile(ME.key)"><span class="ic">◍</span><span class="lb">PROFILE</span></button>
+        <button id="nav-inbox" class="narrow-only" onclick="go('inbox')"><span class="ic">✉</span><span class="lb">INBOX</span></button>
+        <button id="nav-settings" onclick="go('settings')"><span class="ic">⚙</span><span class="lb">SETUP</span></button>
+      </div>
+      <div class="railfoot">
+        <div class="keymini" id="mykey" title="click to copy your key">KEY</div>
+      </div>
+    </div>
+
+    <div class="stories" id="storiesRail"></div>
+
+    <div class="center" style="border-right:0">
+      <div class="restorebar" id="restoreBar">
+        <div class="rb"><b>RESTORING YOUR IDENTITY</b> · downloading your history from the people who hold it. Posting is paused until it arrives, so your log can't split in two.</div>
+        <button class="btn" id="restoreSkip">IT NEVER POSTED · START NOW</button>
+      </div>
+      <div class="composeouter" id="composeOuter">
+      <div class="compose" id="composeBar">
+        <textarea id="text" maxlength="560" placeholder="say something to the swarm…"></textarea>
+        <div class="quotebar" id="quotebar"><span id="quotetext"></span><span class="qx" id="quoteCancel">×</span></div>
+        <div class="attachwrap" id="attachwrap">
+          <img id="attachpreview" alt="attached image preview">
+          <div class="attachbar">
+            <button class="btn" id="attachRemove">× REMOVE</button>
+            <span class="attachmeta" id="attachmeta"></span>
+          </div>
+        </div>
+        <div class="composerow">
+          <button class="btn" id="imgBtn">◲ IMAGE</button>
+          <button class="btn" id="vidBtn">▶ VIDEO</button>
+          <button class="btn" id="storyBtn">◈ STORY</button>
+          <input type="file" id="imgInput" accept="image/*" style="display:none">
+          <input type="file" id="vidInput" accept="video/mp4,video/webm,video/*" style="display:none">
+          <span class="mdbar">
+            <button class="icobtn" id="mdB" title="bold"><b>B</b></button>
+            <button class="icobtn" id="mdI" title="italic"><i>I</i></button>
+            <button class="icobtn" id="mdS" title="strikethrough"><s>S</s></button>
+            <button class="icobtn" id="mdC" title="code">‹›</button>
+          </span>
+          <span class="count" id="count">0 / 560</span>
+          <button class="btn solid" id="postBtn" style="margin-left:auto">POST</button>
+        </div>
+      </div>
+      </div>
+      <div class="scroll" id="feedScroll">
+        <div class="pillwrap"><div class="pill" id="pill" onclick="applyPending()">↻ <span id="pillText">NEW POSTS</span> — RELOAD</div></div>
+        <div id="feed"></div>
+      </div>
+      <div class="ppage" id="ppage"></div>
+      <div class="ppage" id="setpage"></div>
+      <div class="ppage" id="nearpage"></div>
+      <div class="ppage" id="firepage"></div>
+      <div class="ppage" id="notifpage"></div>
+      <div class="dmwrap" id="dmwrap">
+        <div class="dmlist" id="dmlist"></div>
+        <div class="dmthread">
+          <div class="dmhead" id="dmhead"><span class="meta">select or start a conversation</span></div>
+          <div class="dmmsgs" id="dmmsgs"></div>
+          <div class="dminput"><input id="dmtext" maxlength="4000" placeholder="encrypted message…" disabled>
+            <button class="btn solid" id="dmsend" disabled>SEND</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inboxrail" id="inboxRail">
+      <div class="irhead" id="irhead">
+        <span class="ircollapse" id="irToggle">✉</span>
+        <span class="irtitle">INBOX</span>
+        <span class="irdot" id="dot-inbox"></span>
+      </div>
+      <div class="irbody" id="irbody">
+        <div class="irlist" id="irlist"></div>
+        <div class="irthread" id="irthread">
+          <div class="dmhead" style="height:40px">
+            <span class="irback" id="irBack">←</span>
+            <span id="irWho" class="who" style="font-size:12px"></span>
+            <span class="ircollapse" id="irExpand" title="expand to full view" style="margin-left:auto">⤢</span>
+          </div>
+          <div class="irmsgs" id="irmsgs"></div>
+          <div class="irinput">
+            <button class="icobtn" id="irImg" title="send image">◲</button>
+            <input type="file" id="irImgInput" accept="image/*" style="display:none">
+            <button class="icobtn" id="irVoice" title="voice message">●</button>
+            <input type="text" id="irText" maxlength="4000" placeholder="encrypted…">
+            <button class="icobtn" id="irSend" title="send">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+<div class="sview" id="sview">
+  <div class="sframe">
+    <div class="sbar" id="sbar"></div>
+    <div class="stop" id="stop"></div>
+    <img class="simg" id="simg" alt="story">
+    <div class="scap" id="scap"></div>
+  </div>
+</div>
+<div style="position:fixed;top:70px;right:18px;z-index:40;display:none;background:var(--paper);border:1px solid var(--line);box-shadow:5px 5px 0 var(--shadow);padding:12px;width:300px" id="followPop">
+  <div class="panelhead">FOLLOW BY KEY</div>
+  <div class="addfollow" style="margin-top:0">
+    <input id="followKey" placeholder="paste 64-char key">
+    <button class="btn" id="followBtn">FOLLOW</button>
+  </div>
+  <div class="panelhead" style="margin-top:14px">FOLLOWING</div>
+  <div id="followList" style="max-height:260px;overflow-y:auto"></div>
+</div>
+<input type="file" id="storyInput" accept="image/*" style="display:none">
+<div class="scomposer" id="scomposer">
+  <div class="scbox">
+    <div class="schead"><span class="t">NEW STORY</span>
+      <span class="sclose" id="scClose" style="margin-left:auto">×</span></div>
+    <canvas id="scanvas"></canvas>
+    <div class="sctools">
+      <button class="btn" id="scAddText">+ TEXT</button>
+      <input class="scin" id="scText" placeholder="edit selected text…" maxlength="80" disabled>
+      <input type="range" class="scsize" id="scSize" min="16" max="72" value="32" disabled>
+      <span id="scSwatches" style="display:flex;gap:6px"></span>
+    </div>
+    <div class="schint">drag text to place it · text is baked into the image when you post</div>
+    <div class="sctools" style="border-top:1px solid var(--line)">
+      <button class="btn solid" id="scPost">POST STORY · 24H</button>
+      <button class="btn" id="scCancel">CANCEL</button>
+    </div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox">
+  <div class="lbbox">
+    <div class="lbhead"><span class="t" id="lbTitle">IMAGE</span><span class="m" id="lbMeta"></span>
+      <span class="sclose" id="lbClose" style="margin-left:auto">×</span></div>
+    <div class="lbstage" id="lbStage"><img id="lbImg" alt=""></div>
+    <div class="lbfoot" id="lbFoot">click image to zoom · esc to close</div>
+  </div>
+</div>
+<div class="vplayer" id="vplayer">
+  <div class="vpbox">
+    <div class="vphead"><span class="t" id="vpTitle">VIDEO</span>
+      <span class="sclose" id="vpClose" style="margin-left:auto">×</span></div>
+    <video class="vpvideo" id="vpVideo"></video>
+    <div class="vpctrl">
+      <button class="vpplay" id="vpPlay">▶</button>
+      <div class="vpseek" id="vpSeek"><div class="track"><div class="fill" id="vpFill"></div><div class="knob" id="vpKnob"></div></div></div>
+      <span class="vptime" id="vpTime">0:00 / 0:00</span>
+      <span class="vpmute" id="vpMute">SOUND ON</span>
+    </div>
+    <div class="vpprog" id="vpSeedNote">watching = seeding · this video now streams from you too</div>
+  </div>
+</div>
+<div class="onboard" id="onboard">
+  <div class="obbox">
+    <div class="oblogo"><div class="mark"></div><span class="word">ULN</span></div>
+
+    <div class="obstep on" id="ob0">
+      <div class="obh" data-noi18n>ЯЗЫК · LANGUAGE · LANGUE · 语言 · اللغة</div>
+      <div class="langpick" id="obLangs"></div>
+      <div class="oblabel" id="obReadLabel">I ALSO READ</div>
+      <div class="chips" id="obRead"></div>
+      <div class="obrow"><button class="btn solid" id="obLangGo">CONTINUE →</button></div>
+    </div>
+
+    <div class="obstep" id="ob1">
+      <div class="obh">NO SERVERS. NO ACCOUNTS. NO ALGORITHM.</div>
+      <div class="obp">Your feed lives on your machine and travels peer-to-peer. Content stays alive
+      as long as someone keeps it warm — followers re-seed what they read, watchers seed what they watch.
+      Discovery works by meaning: post about something and the corner of the network thinking about the
+      same thing becomes visible to you.</div>
+      <div class="obrow"><button class="btn solid" onclick="obGo(2)">BEGIN →</button></div>
+    </div>
+
+    <div class="obstep" id="ob2">
+      <div class="obh">WHO ARE YOU IN THE SWARM?</div>
+      <div class="obpfp" id="obPfp">+</div>
+      <input type="file" id="obPfpInput" accept="image/*" style="display:none">
+      <input class="field" id="obName" placeholder="display name" maxlength="32">
+      <input class="field" id="obStatus" placeholder="status · optional" maxlength="48">
+      <div class="obrow"><button class="btn solid" id="obSave">CONTINUE →</button></div>
+    </div>
+
+    <div class="obstep" id="obT">
+      <div class="obh">WHAT ARE YOU INTO?</div>
+      <div class="obp">Pick a few. Each one is a room on the network: you'll sit in it, and posts about it reach you.
+      Rooms may be empty at first, that's fine: they fill as people arrive. You can change this any time in SETUP.</div>
+      <div class="obtopics"><div class="chips" id="obTopics"></div></div>
+      <div class="oblabel">OR SAY IT IN YOUR OWN WORDS</div>
+      <input class="field" id="obTopicText" maxlength="280" placeholder="e.g. analog synths, risograph zines, rai music">
+      <div class="legend">this never leaves your machine. what the network sees is which rooms you sit in, and Ember adds two random decoy rooms so nobody can tell which ones are really yours.</div>
+      <div class="obrow"><button class="btn solid" id="obTopicsGo">CONTINUE →</button></div>
+    </div>
+
+    <div class="obstep" id="ob3">
+      <div class="obh">THIS KEY IS YOUR IDENTITY. THERE IS NO RECOVERY.</div>
+      <div class="obp">No email, no password reset, no support ticket. If you lose this machine without
+      a backup, you lose this identity forever. Export the backup file now and put it somewhere safe.</div>
+      <div class="obkey" id="obKey" title="click to copy">…</div>
+      <div class="obrow">
+        <button class="btn solid" id="obExport">EXPORT BACKUP FILE</button>
+        <button class="btn" id="obSkip">RISK IT — LATER</button>
+      </div>
+    </div>
+
+    <div class="obstep" id="ob4">
+      <div class="obh">YOU'RE IN.</div>
+      <div class="obp">Post something — it lands in meaning-buckets where nearby strangers drift.
+      Follow a friend's key to sync their feed and start keeping it warm. Close the window and Ember
+      keeps seeding from the tray. The network is only as alive as the people holding it.</div>
+      <div class="obrow"><button class="btn solid" onclick="finishOnboard()">ENTER THE SWARM ◆</button></div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<div class="offlinebar">LOST CONTACT WITH EMBER · RECONNECTING…</div>
+
+<script>
+const $ = s => document.querySelector(s)
+if (window.EMBER_WEB) document.documentElement.classList.add('web')
+let ME = null, VIEW = 'feed'
+let DATA = { items: [], profiles: {}, follows: [], replyCounts: {} }
+let DISC = { items: [] }
+let SAVED_IDS = new Set()
+let DM_ACTIVE = null
+let PENDING = { feed: 0, discover: 0 }
+let FIRST_LOAD = true
+let OWN_ACTION = 0
+let UNREAD = { reply: 0, dm: 0, post: 0, total: 0 }
+
+// markdown subset: **bold** *italic* ~~strike~~ `code` — plain text on the wire
+function mdRender (s) {
+  let h = esc(s)
+  h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>')
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, '<b>$1</b>')
+  h = h.replace(/\*([^*\n]+)\*/g, '<i>$1</i>')
+  h = h.replace(/~~([^~\n]+)~~/g, '<s>$1</s>')
+  h = h.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+  return h
+}
+function dmParse (raw) {
+  try { const j = JSON.parse(raw); if (j && (j.k==='t'||j.k==='i'||j.k==='v') && typeof j.d==='string') return j } catch {}
+  return { k:'t', d: raw }
+}
+function dmPreview (raw) {
+  const p = dmParse(raw)
+  return p.k==='i' ? '◲ image' : p.k==='v' ? '● voice message' : p.d
+}
+function bubbleHTML (m, mine) {
+  const p = dmParse(m.text)
+  let inner = ''
+  if (p.k==='i') inner = `<img src="${safeSrc(p.d)}" alt="image">`
+  else if (p.k==='v') inner = `<div class="vmsg" data-vsrc="${safeSrc(p.d)}">
+      <button class="vplay">▶</button><div class="vwave"></div><span class="vtime">··</span></div>`
+  else inner = mdRender(p.d)
+  return inner + `<span class="bts">${ago(m.ts)}${mine&&m.delivered===false?' · QUEUED — DELIVERS WHEN BOTH ONLINE':''}</span>`
+}
+
+// decode → 32 peak bars → play/seek on the bars; one shared AudioContext
+let AC = null
+async function wireVoice (root) {
+  for (const el of root.querySelectorAll('.vmsg[data-vsrc]')) {
+    const src = el.dataset.vsrc; delete el.dataset.vsrc
+    const wave = el.querySelector('.vwave'), btn = el.querySelector('.vplay'), timeEl = el.querySelector('.vtime')
+    const audio = new Audio(src)
+    // decode peaks
+    try {
+      AC = AC || new AudioContext()
+      const b64 = src.split(',')[1]
+      const bin = atob(b64); const buf = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i)
+      const ab = await AC.decodeAudioData(buf.buffer)
+      const ch = ab.getChannelData(0)
+      const N = 32, step = Math.floor(ch.length / N)
+      const peaks = []
+      for (let i = 0; i < N; i++) {
+        let max = 0
+        for (let j = 0; j < step; j += 20) { const v = Math.abs(ch[i*step + j]); if (v > max) max = v }
+        peaks.push(max)
+      }
+      const top = Math.max(...peaks, 0.01)
+      wave.innerHTML = peaks.map(pk => `<span style="height:${Math.max(3, Math.round(pk/top*22))}px"></span>`).join('')
+      timeEl.textContent = Math.round(ab.duration) + 's'
+    } catch {
+      wave.innerHTML = Array.from({length:32}, () => `<span style="height:8px"></span>`).join('')
+    }
+    const bars = [...wave.children]
+    const paint = () => {
+      const f = audio.duration ? audio.currentTime / audio.duration : 0
+      bars.forEach((b, i) => b.classList.toggle('on', i / bars.length <= f))
+    }
+    audio.addEventListener('timeupdate', paint)
+    audio.addEventListener('ended', () => { btn.textContent = '▶'; bars.forEach(b => b.classList.remove('on')) })
+    btn.onclick = () => {
+      if (audio.paused) { audio.play(); btn.textContent = '❚❚' }
+      else { audio.pause(); btn.textContent = '▶' }
+    }
+    wave.onclick = (ev) => {
+      const r = wave.getBoundingClientRect()
+      if (audio.duration) { audio.currentTime = ((ev.clientX - r.left) / r.width) * audio.duration; paint() }
+    }
+  }
+}
+
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1700) }
+// keys get pasted from share sheets and chats: take the first 64-hex run
+const keyFrom = s => { const m = String(s || '').normalize('NFKC').toLowerCase().match(/[0-9a-f]{64}/); return m ? m[0] : null }
+const esc = s => { const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML }
+// attribute-safe escaping: esc() does NOT escape quotes, so it must never be used inside attributes
+const attr = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+// the only things allowed into a src: strict data URLs of known media types, or our own blob: URLs
+const SAFE_SRC = /^(data:(image\/(jpeg|png|webp|gif)|audio\/(webm|ogg|mp4|mpeg)(;codecs=[a-z0-9]+)?|video\/(mp4|webm));base64,[A-Za-z0-9+\/]+={0,2}|blob:[A-Za-z0-9:\/.\-]+)$/
+const safeSrc = s => (typeof s === 'string' && SAFE_SRC.test(s)) ? s : ''
+function dayLabel (ts) {
+  const d = new Date(ts), now = new Date()
+  const sameDay = (a, b) => a.toDateString() === b.toDateString()
+  if (sameDay(d, now)) return tr('TODAY')
+  const y = new Date(now); y.setDate(y.getDate() - 1)
+  if (sameDay(d, y)) return tr('YESTERDAY')
+  return d.toLocaleDateString(LANG, { day: 'numeric', month: 'short' }).toUpperCase()
+}
+const ago = ts => { const s=(Date.now()-ts)/1000
+  const R = LANG === 'ru'
+  if(s<60)return R?'сейчас':'now'; if(s<3600)return Math.floor(s/60)+(R?'\u00a0мин':'m'); if(s<86400)return Math.floor(s/3600)+(R?'\u00a0ч':'h')
+  return Math.floor(s/86400)+(R?'\u00a0дн':'d') }
+// Profiles we've seen anywhere (profile pages, nearby cards), not only the
+// timeline's followed set, which is replaced on every refresh. Without this a
+// stranger's own profile page showed their posts under a hex key.
+const PCACHE = {}
+const profFor = k => DATA.profiles[k] || PCACHE[k] || null
+const rememberProfile = (k, p) => { if (k && p) PCACHE[k] = { ...(PCACHE[k] || {}), ...p } }
+const nameFor = k => {
+  if (ME && k===ME.key) return (ME.profile&&ME.profile.name)||'you'
+  const p=profFor(k); return (p&&p.name)||k.slice(0,8)
+}
+const avatarFor = k => { const p=(ME&&k===ME.key)?ME.profile:profFor(k); return safeSrc(p&&p.avatar||'')||null }
+const avatarHTML = (k, cls='avatar') => {
+  const av=avatarFor(k); const me=ME&&k===ME.key
+  return `<div class="${cls} ${me?'me':''}" data-p="${k}">${av?`<img src="${safeSrc(av)}" alt="">`:esc(nameFor(k)[0]||'?')}</div>`
+}
+const netRender = () => $('#netstat').innerHTML =
+  `${NET.peers} FEED PEERS · ${NET.seeders} SEEDING YOU<br>${NET.gossip} GOSSIP · ${NET.buckets} BUCKETS`
+let NET = { peers: 0, gossip: 0, buckets: 0, seeders: 0 }
+
+function shrinkImage (file, maxFull=900, maxThumb=96) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const draw = (max, q) => {
+        const r = Math.min(1, max / Math.max(img.width, img.height))
+        const c = document.createElement('canvas')
+        c.width = Math.round(img.width*r); c.height = Math.round(img.height*r)
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height)
+        return c.toDataURL('image/jpeg', q)
+      }
+      let full = draw(maxFull, 0.72)
+      if (full.length > 180_000) full = draw(640, 0.6)
+      if (full.length > 180_000) full = draw(480, 0.5)
+      resolve({ image: full, thumb: draw(maxThumb, 0.5) })
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+/* ============ LANGUAGES ============ */
+// English is the source text. Other languages are dictionaries keyed by the
+// exact English string (whitespace folded), plus a few patterns for strings with
+// numbers in them. Text people wrote (posts, names, messages) is never touched.
+const UI_LANGS = { ru: ['РУССКИЙ', 'Русский'], en: ['ENGLISH', 'English'], fr: ['FRANÇAIS', 'Français'], zh: ['中文', '简体中文'], ar: ['العربية', 'عربي'] }
+let LANG = 'en', I18N = null, I18N_PATS = []
+let TASTE = { catalog: [], topics: [], terms: [], avoid: [], dial: 1, readLangs: ['en'], onboarded: true, campfires: true }
+const I18N_SKIP = '.word,.body,.who,.pname,.bubble,.state,.pstatus,.scap,.fmtext,.fwho,.k,.obkey,.keymini,.nsub,.daysep,#irWho,#irlist .n,#irlist .p,#dmlist .n,#dmlist .p,[data-noi18n],script,style,textarea,code'
+const fold = s => s.replace(/\s+/g, ' ').trim()
+function tr (s) {
+  if (!I18N || !s) return s
+  const k = fold(String(s)); if (!k) return s
+  let out = I18N[k]
+  if (out == null) for (const [re, rep] of I18N_PATS) if (re.test(k)) { out = k.replace(re, (...m) => rep.replace(/\$(\d)/g, (_, i) => { const g = m[+i] || ''; return I18N[g] != null ? I18N[g] : g })); break }
+  if (out == null) { if (window.__i18nMiss) window.__i18nMiss.add(k); return s }
+  return String(s).match(/^\s*/)[0] + out + String(s).match(/\s*$/)[0]
+}
+const DONE = new WeakMap()
+function trText (n) {
+  const v = n.nodeValue
+  if (DONE.get(n) === v || !/[A-Za-z]{2}/.test(v)) return
+  const o = tr(v); DONE.set(n, o); if (o !== v) n.nodeValue = o
+}
+function trAttrs (el) {
+  for (const a of ['placeholder', 'title']) {
+    const v = el.getAttribute && el.getAttribute(a)
+    if (v && /[A-Za-z]{2}/.test(v)) { const o = tr(v); if (o !== v) el.setAttribute(a, o) }
+  }
+}
+function trTree (root) {
+  if (!I18N || !root) return
+  if (root.nodeType === 3) { const p = root.parentElement; if (!p || !p.closest(I18N_SKIP)) trText(root); return }
+  if (root.nodeType !== 1) return
+  if (root.closest && root.closest('[data-noi18n]')) return
+  if (!root.matches(I18N_SKIP)) trAttrs(root)
+  else if (root.matches('input,textarea')) { trAttrs(root); return } else return
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+    acceptNode: n => n.nodeType === 1 ? (n.matches(I18N_SKIP) ? (n.matches('textarea') && trAttrs(n), NodeFilter.FILTER_REJECT) : NodeFilter.FILTER_ACCEPT) : NodeFilter.FILTER_ACCEPT
+  })
+  let n; while ((n = w.nextNode())) { if (n.nodeType === 3) trText(n); else trAttrs(n) }
+}
+let MO = null
+async function setLanguage (lang) {
+  LANG = UI_LANGS[lang] ? lang : 'en'
+  try { localStorage.setItem('emberLang', LANG) } catch {}
+  document.documentElement.lang = LANG
+  document.documentElement.dir = LANG === 'ar' ? 'rtl' : 'ltr'
+  if (LANG === 'en') return
+  const d = await window.ember.i18n(LANG)
+  if (!d) return
+  I18N = d.strings || {}
+  I18N_PATS = (d.patterns || []).map(([re, rep]) => [new RegExp(re), rep])
+  trTree(document.body)
+  if (!MO) {
+    MO = new MutationObserver(muts => {
+      for (const m of muts) {
+        if (m.type === 'characterData') { const p = m.target.parentElement; if (!p || !p.closest(I18N_SKIP)) trText(m.target) }
+        else for (const n of m.addedNodes) trTree(n)
+      }
+    })
+    MO.observe(document.body, { childList: true, subtree: true, characterData: true })
+  }
+}
+const topicLabel = id => { const t = TASTE.catalog.find(x => x.id === id); if (!t) return id; const l = t.label[LANG] || t.label.en; return LANG === 'fr' || LANG === 'en' || LANG === 'ru' ? l.toUpperCase() : l }
+async function loadTaste () { try { TASTE = await window.ember.tasteState() } catch {} return TASTE }
+function guessLang () { return 'ru' } // ULN: русский по умолчанию, остальные языки выбираются в НАСТРОЙКАХ
+
+/* ============ NAVIGATION ============ */
+
+function go (view) {
+  VIEW = view
+  for (const v of ['feed','discover','nearby','fires','notifs','saved','profile','settings','inbox']) {
+    const b = $('#nav-'+v); if (b) b.classList.toggle('on', v===view)
+  }
+  $('#ppage').classList.toggle('open', view==='profile')
+  $('#setpage').classList.toggle('open', view==='settings')
+  $('#nearpage').classList.toggle('open', view==='nearby')
+  $('#firepage').classList.toggle('open', view==='fires')
+  $('#notifpage').classList.toggle('open', view==='notifs')
+  $('#dmwrap').classList.toggle('open', view==='inbox')
+  $('#inboxRail').style.display = view==='inbox' ? 'none' : 'flex'
+  $('#feedScroll').style.display = (view==='feed'||view==='discover'||view==='saved') ? 'block' : 'none'
+  $('#composeBar').style.display = view==='feed' ? 'flex' : 'none'
+  $('#search').placeholder = tr(view==='discover' ? 'search by meaning — enters matching buckets' : 'filter feed')
+  $('.search') && document.querySelector('.search').classList.toggle('hidden', !['feed','discover','saved'].includes(view))
+  if (view==='feed') { PENDING.feed=0; refresh(); markRead('post') }
+  if (view==='discover') { PENDING.discover=0; renderDiscover() }
+  if (view==='saved') renderSaved()
+  if (view==='inbox') { renderDmList(); markRead('dm') }
+  if (view==='notifs') renderNotifs()
+  if (view==='settings') renderSettings()
+  if (view==='nearby') renderNearby()
+  if (view==='fires') { $('#dot-fires').classList.remove('show'); renderFires() }
+  updatePill()
+}
+
+/* ============ CARDS ============ */
+
+function card (it, opts = {}) {
+  const mine = ME && it.author===ME.key
+  const name = nameFor(it.author)
+  const status = mine ? (ME.profile&&ME.profile.status) : (profFor(it.author)&&profFor(it.author).status)
+  const id = it.author+':'+it.seq
+  const rc = DATA.replyCounts[id] || 0
+  const el = document.createElement('div'); el.className='card cardwrap anim-rise'
+  if (opts.stagger != null) el.style.animationDelay = Math.min(opts.stagger*35, 400)+'ms'
+  el.dataset.author = it.author; el.dataset.seq = it.seq
+  const isSaved = SAVED_IDS.has(id)
+
+  // ---- why this is in your Discover ----
+  let why = ''
+  if (opts.discover && it.why) {
+    const w = it.why
+    const words = w.k === 'topic' ? `<span class="w" data-noi18n>${esc(topicLabel(w.topic))}</span>`
+      : w.k === 'compass' ? `<span class="w" data-noi18n>${esc((w.terms || []).join(' · '))}</span>` : ''
+    const label = { search: 'MATCHES YOUR SEARCH', follow: 'YOU FOLLOW THEM', topic: 'A TOPIC YOU PICKED ·', compass: 'SHARES WORDS WITH YOUR COMPASS ·', near: 'CLOSE TO YOUR COMPASS', wide: 'FROM FURTHER OUT' }[w.k] || ''
+    why = `<div class="why ${it.flagged ? 'flag' : ''}"><span>◎</span><span>${label}</span>${words}${it.flagged ? '<span>· ON A LIST OF SOMEONE YOU FOLLOW</span>' : ''}</div>`
+  }
+
+  // ---- head: avatar · name/handle · status · ··· ----
+  let inner = why + `
+    <div class="cardhead">
+      ${avatarHTML(it.author)}
+      <div class="headid">
+        <span class="who" data-p="${it.author}">${esc(name)}</span>
+        <span class="meta">@${it.author.slice(0,8)} · ${ago(it.ts)}${it.trust==='unsigned'||it.unverified?' · UNVERIFIED':''}</span>
+      </div>
+      ${opts.score!=null ? `<span class="prox">PROX ${(it.score*100|0)}%</span>`
+        : status ? `<span class="state">${esc(status.toUpperCase().slice(0,14))}</span>` : ''}
+      <button class="more">···</button>
+      <div class="cardmenu"></div>
+    </div>`
+
+  // ---- body + media ----
+  if (it.type==='repost') {
+    inner += `<div class="cardbody"><div class="body">↻ reposted</div></div>
+      <div class="repostref" data-resolve="${attr(it.ref.author)}:${attr(it.ref.seq)}"><span class="meta">fetching original…</span></div>`
+  } else {
+    if (it.text) inner += `<div class="cardbody"><div class="body">${mdRender(it.text)}</div></div>`
+    if ((it.type==='quote' || it.kind==='quote') && it.ref) {
+      inner += `<div class="repostref" data-resolve="${attr(it.ref.author)}:${attr(it.ref.seq)}"><span class="meta">fetching quoted post…</span></div>`
+    }
+    if (it.videoMeta) {
+      inner += `<div class="vidwrap" data-video="${attr(JSON.stringify({a:it.author,m:it.videoMeta}))}">
+          <img class="postimg thumb" ${it.thumb?`src="${safeSrc(it.thumb)}" alt="video preview"`:'alt=""'}>
+          <div class="vbadge"><span>▶ VIDEO · ${(it.videoMeta.size/1048576).toFixed(1)}MB</span></div>
+        </div>
+        <div class="vprog"><i></i></div>
+        <div class="imgtag">STREAMS FROM WHOEVER HOLDS IT · WATCHING = SEEDING</div>`
+    } else if (it.mediaSeq != null || it.thumb) {
+      inner += `<img class="postimg thumb" data-media="${it.author}:${it.mediaSeq}" ${it.thumb?`src="${safeSrc(it.thumb)}"`:''} alt="post image">
+        <div class="imgtag">PREVIEW · CLICK FOR FULL</div>`
+    }
+  }
+
+  // ---- action row: chips left, save square right ----
+  inner += `<div class="cardactions">
+      <button class="btn th">◈ ${rc || 'REPLY'}</button>
+      ${it.type!=='repost' ? `<button class="btn qt">❝ QUOTE</button>` : ''}
+      ${!mine && it.type!=='repost' ? `<button class="btn rp">↻ REPOST</button>` : ''}
+      ${!mine && opts.discover && !DATA.follows.includes(it.author) ? `<button class="btn fl">+ FOLLOW</button>` : ''}
+      ${!mine ? `<button class="saveglyph sv ${isSaved?'on':''}" title="${isSaved?'saved — you keep it warm':'save'}">${isSaved?'◆':'◇'}</button>` : ''}
+    </div>
+    <div class="thread"></div>`
+  el.innerHTML = inner
+
+  // overflow menu content
+  const menu = el.querySelector('.cardmenu')
+  menu.innerHTML = (mine
+    ? (it.type!=='repost' ? `<button data-m="del" class="danger">✕ DELETE</button>` : '') + `<button data-m="copy">COPY KEY</button>`
+    : `<button data-m="dm">✉ DM ${esc(name).toUpperCase().slice(0,10)}</button>
+       <button data-m="prof">◍ PROFILE</button>
+       <button data-m="copy">COPY KEY</button>
+       ${opts.discover ? '<button data-m="notint">NOT INTERESTED</button>' : ''}
+       <button data-m="mute">MUTE</button>
+       <button data-m="block" class="danger">BLOCK</button>`)
+  return el
+}
+
+function wireCards (root) {
+  hydrateCards(root)
+  root.querySelectorAll('.card').forEach(el => {
+    const author = el.dataset.author, seq = +el.dataset.seq
+    const q = s => el.querySelector(s)
+    if (q('.th')) q('.th').onclick = () => toggleThread(el, author, seq)
+    if (q('.rp')) q('.rp').onclick = async () => { await window.ember.repost(author, seq); toast('REPOSTED'); OWN_ACTION=Date.now(); refresh() }
+    if (q('.fl')) q('.fl').onclick = async () => { await window.ember.follow(author); toast('FOLLOWING'); refresh() }
+    if (q('.qt')) q('.qt').onclick = () => startQuote(author, seq, el.querySelector('.body') ? el.querySelector('.body').textContent : '')
+    if (q('.sv')) q('.sv').onclick = async (e) => {
+      const b = e.currentTarget; const id = author+':'+seq
+      if (SAVED_IDS.has(id)) { await window.ember.unsavePost(author, seq); SAVED_IDS.delete(id); b.textContent='◇'; b.classList.remove('on'); toast('UNSAVED') }
+      else {
+        try { await window.ember.savePost(author, seq); SAVED_IDS.add(id); b.textContent='◆'; b.classList.add('on'); toast('SAVED · YOU KEEP IT WARM NOW') }
+        catch { toast('CANNOT RESOLVE POST') }
+      }
+    }
+    // overflow menu
+    const more = q('.more'), menu = q('.cardmenu')
+    if (more && menu) {
+      more.onclick = (e) => {
+        e.stopPropagation()
+        document.querySelectorAll('.cardmenu.open').forEach(x => x !== menu && x.classList.remove('open'))
+        menu.classList.toggle('open')
+      }
+      menu.querySelectorAll('button').forEach(b => b.onclick = async (e) => {
+        e.stopPropagation(); menu.classList.remove('open')
+        const act = b.dataset.m
+        if (act === 'dm') openDm(author)
+        else if (act === 'prof') openProfile(author)
+        else if (act === 'copy') { navigator.clipboard.writeText(author); toast('KEY COPIED') }
+        else if (act === 'mute') { await window.ember.mute(author); toast('MUTED'); refresh() }
+        else if (act === 'notint') { await window.ember.notInterested(author, seq); toast('GOT IT · LESS LIKE THIS'); el.remove() }
+        else if (act === 'block') { await window.ember.block(author); toast('BLOCKED'); refresh() }
+        else if (act === 'del') {
+          if (!confirm(tr('Delete this post? It disappears from the network and your device. Only saved copies survive.'))) return
+          await window.ember.deletePost(seq); toast('DELETED · TOMBSTONE GOSSIPED'); OWN_ACTION = Date.now(); refresh()
+        }
+      })
+    }
+  })
+  root.querySelectorAll('.who,.avatar').forEach(b => { if (b.dataset.p) b.onclick = () => openProfile(b.dataset.p) })
+}
+document.addEventListener('click', () => document.querySelectorAll('.cardmenu.open').forEach(x => x.classList.remove('open')))
+
+async function hydrateCards (root) {
+  for (const el of root.querySelectorAll('[data-resolve]')) {
+    const [a, s] = el.dataset.resolve.split(':')
+    delete el.dataset.resolve
+    const blk = await window.ember.resolveBlock(a, +s)
+    if (!blk) { el.innerHTML = '<span class="meta">original unavailable — no holder online</span>'; continue }
+    el.innerHTML = `
+      <div class="cardhead" style="margin-bottom:4px">
+        <span class="who" data-p="${a}">${esc(nameFor(a))}</span>
+        <span class="meta">@${a.slice(0,8)} · ${ago(blk.ts)}${blk.unverified?' · UNVERIFIED':''}</span>
+      </div>
+      <div class="body" style="font-size:12px">${mdRender(blk.text||'')}</div>
+      ${blk.mediaSeq!=null?`<img class="postimg thumb" data-media="${a}:${blk.mediaSeq}" ${blk.thumb?`src="${safeSrc(blk.thumb)}"`:''} alt="">`:''}`
+    el.querySelectorAll('.who').forEach(b => b.onclick = () => openProfile(b.dataset.p))
+    wireMedia(el)
+  }
+  wireMedia(root)
+}
+
+function wireVideo (root) {
+  root.querySelectorAll('.vidwrap[data-video]').forEach(w => {
+    const info = JSON.parse(w.dataset.video); delete w.dataset.video
+    const prog = w.nextElementSibling, tag = prog && prog.nextElementSibling
+    w.onclick = async () => {
+      if (w._loading) return
+      w._loading = true
+      prog.classList.add('show')
+      tag && (tag.textContent = 'FETCHING CHUNKS FROM HOLDERS…')
+      const key = info.a + ':' + info.m.start
+      VIDEO_PROG[key] = prog.querySelector('i')
+      const r = await window.ember.getVideo(info.a, info.m)
+      delete VIDEO_PROG[key]
+      w._loading = false
+      prog.classList.remove('show')
+      if (r.ok) {
+        tag && (tag.textContent = 'CACHED · YOU NOW SEED THIS FOR OTHERS')
+        openPlayer(r.dataUrl, nameFor(info.a).toUpperCase() + ' · ' + (info.m.size/1048576).toFixed(1) + 'MB')
+      } else {
+        tag && (tag.textContent = `NO HOLDER ONLINE FOR CHUNK ${r.at+1}/${info.m.count} — TRY WHEN MORE PEERS ARE UP`)
+      }
+    }
+  })
+}
+/* ============ EMBER PLAYER ============ */
+const VP = { v: null }
+function fmtT (s) { s = Math.max(0, s|0); return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0') }
+function openPlayer (src, title) {
+  const v = $('#vpVideo')
+  VP.v = v
+  v.src = src
+  $('#vpTitle').textContent = title || 'VIDEO'
+  $('#vplayer').classList.add('open')
+  v.play().then(() => $('#vpPlay').textContent = '❚❚').catch(() => {})
+}
+function closePlayer () {
+  const v = $('#vpVideo')
+  v.pause(); v.removeAttribute('src'); v.load()
+  $('#vplayer').classList.remove('open')
+  $('#vpPlay').textContent = '▶'
+}
+$('#vpClose').onclick = closePlayer
+$('#vplayer').addEventListener('click', e => { if (e.target === $('#vplayer')) closePlayer() })
+$('#vpPlay').onclick = () => {
+  const v = $('#vpVideo')
+  if (v.paused) { v.play(); $('#vpPlay').textContent = '❚❚' }
+  else { v.pause(); $('#vpPlay').textContent = '▶' }
+}
+$('#vpVideo').addEventListener('click', () => $('#vpPlay').click())
+$('#vpVideo').addEventListener('timeupdate', () => {
+  const v = $('#vpVideo')
+  const f = v.duration ? v.currentTime / v.duration : 0
+  $('#vpFill').style.width = (f*100) + '%'
+  $('#vpKnob').style.left = (f*100) + '%'
+  $('#vpTime').textContent = fmtT(v.currentTime) + ' / ' + fmtT(v.duration || 0)
+})
+$('#vpVideo').addEventListener('ended', () => $('#vpPlay').textContent = '▶')
+;(function () {
+  let scrub = false
+  const seek = ev => {
+    const r = $('#vpSeek').getBoundingClientRect()
+    const v = $('#vpVideo')
+    if (v.duration) v.currentTime = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * v.duration
+  }
+  $('#vpSeek').addEventListener('pointerdown', ev => { scrub = true; $('#vpSeek').setPointerCapture(ev.pointerId); seek(ev) })
+  $('#vpSeek').addEventListener('pointermove', ev => scrub && seek(ev))
+  $('#vpSeek').addEventListener('pointerup', () => scrub = false)
+})()
+$('#vpMute').onclick = () => {
+  const v = $('#vpVideo')
+  v.muted = !v.muted
+  $('#vpMute').textContent = v.muted ? 'MUTED' : 'SOUND ON'
+}
+document.addEventListener('keydown', e => {
+  if (!$('#vplayer').classList.contains('open')) return
+  if (e.key === 'Escape') closePlayer()
+  if (e.key === ' ') { e.preventDefault(); $('#vpPlay').click() }
+})
+
+const VIDEO_PROG = {}
+window.ember.onVideoProgress(p => {
+  const el = VIDEO_PROG[p.author + ':' + p.seq]
+  if (el) el.style.width = Math.round(p.done / p.total * 100) + '%'
+})
+
+function wireMedia (root) {
+  wireVideo(root)
+  root.querySelectorAll('.postimg').forEach(img => {
+    if (img.closest('.vidwrap')) return                  // video thumbs open the player instead
+    img.onclick = () => {
+      const [a, s] = (img.dataset.media || '').split(':')
+      const card = img.closest('[data-author]')
+      openImage({ src: img.getAttribute('src'), author: card ? card.dataset.author : a,
+                  media: (s && s !== 'null' && s !== 'undefined') ? { a, s: +s } : null })
+    }
+  })
+}
+
+/* ============ IMAGE VIEWER ============ */
+const MEDIA_FULL = new Map()   // 'author:seq' -> full data URL, so a second open is instant
+async function openImage ({ src, author, media }) {
+  const lb = $('#lightbox'), img = $('#lbImg'), stage = $('#lbStage')
+  stage.classList.remove('zoom')
+  img.src = safeSrc(src || '')
+  $('#lbTitle').textContent = author ? nameFor(author).toUpperCase() : 'IMAGE'
+  $('#lbMeta').textContent = ''
+  lb.classList.add('open')
+  if (!media) { img.classList.remove('loading'); $('#lbFoot').textContent = 'click image to zoom · esc to close'; return }
+  const key = media.a + ':' + media.s
+  if (MEDIA_FULL.has(key)) { img.src = MEDIA_FULL.get(key); img.classList.remove('loading'); $('#lbFoot').textContent = 'full image · click to zoom · esc to close'; return }
+  img.classList.add('loading'); $('#lbFoot').textContent = 'pulling the full image from whoever holds it…'
+  const full = safeSrc(await window.ember.getMedia(media.a, media.s) || '')
+  if (!lb.classList.contains('open') || $('#lbImg') !== img) return
+  img.classList.remove('loading')
+  if (full) { MEDIA_FULL.set(key, full); img.src = full; $('#lbFoot').textContent = 'full image · you seed it now · click to zoom · esc to close' }
+  else $('#lbFoot').textContent = 'no holder online right now — showing the preview'
+}
+function closeImage () { $('#lightbox').classList.remove('open'); $('#lbImg').removeAttribute('src') }
+$('#lbClose').onclick = closeImage
+$('#lightbox').addEventListener('click', e => { if (e.target === $('#lightbox')) closeImage() })
+$('#lbImg').addEventListener('click', () => $('#lbStage').classList.toggle('zoom'))
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#lightbox').classList.contains('open')) closeImage() })
+// images inside DM bubbles (rail thread and full DM view)
+document.addEventListener('click', e => {
+  const im = e.target.closest && e.target.closest('.bubble img')
+  if (im) openImage({ src: im.getAttribute('src'), author: IR_ACTIVE || DM_ACTIVE })
+})
+
+/* ============ FOCUS A POST (from notifications) ============ */
+async function focusPost (author, seq) {
+  await openProfile(author)
+  let card = null
+  for (let i = 0; i < 40 && !card; i++) {
+    card = document.querySelector(`#ppage .card[data-author="${author}"][data-seq="${seq}"]`)
+    if (!card) await new Promise(r => setTimeout(r, 75))
+  }
+  if (!card) { toast('THAT POST IS NO LONGER AVAILABLE'); return }
+  card.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  card.classList.add('focus'); setTimeout(() => card.classList.remove('focus'), 3500)
+  const t = card.querySelector('.thread')
+  if (t && !t.classList.contains('open')) toggleThread(card, author, seq)
+}
+
+/* ============ THREADS (scoped to card — works everywhere incl. profiles) ============ */
+
+async function toggleThread (cardEl, author, seq) {
+  const t = cardEl.querySelector('.thread')
+  if (!t) return
+  if (t.classList.contains('open')) { t.classList.remove('open'); return }
+  t.classList.add('open')
+  await renderThread(cardEl, author, seq)
+}
+
+async function renderThread (cardEl, author, seq) {
+  const t = cardEl.querySelector('.thread')
+  if (!t || !t.classList.contains('open')) return
+  const list = await window.ember.getReplies(author, seq)
+  t.innerHTML = list.map(r => `
+    <div class="reply">
+      <div class="rhead">
+        <span class="who" data-p="${r.author}">${esc(nameFor(r.author))}</span>
+        <span class="meta">@${r.author.slice(0,8)} · ${ago(r.ts)}</span>
+      </div>
+      <div class="body">${mdRender(r.text)}</div>
+    </div>`).join('') + `
+    <div class="replybox"><input maxlength="400" placeholder="reply…"><button class="btn solid">SEND</button></div>`
+  t.querySelectorAll('.who').forEach(b => b.onclick = () => openProfile(b.dataset.p))
+  const input = t.querySelector('.replybox input')
+  const send = async () => {
+    const txt = input.value.trim(); if (!txt) return
+    await window.ember.reply(author, seq, txt); input.value=''
+    toast('REPLIED'); renderThread(cardEl, author, seq)
+  }
+  t.querySelector('.replybox .btn').onclick = send
+  input.onkeydown = e => { if (e.key==='Enter') send() }
+}
+
+/* ============ VIEWS ============ */
+
+let FEED_SHOWN = 40
+function renderFeed () {
+  const q = $('#search').value.trim().toLowerCase()
+  const feed = $('#feed'); feed.innerHTML=''
+  const items = DATA.items.filter(it => !q || (it.text||'').toLowerCase().includes(q) || nameFor(it.author).toLowerCase().includes(q))
+  if (!items.length) { feed.innerHTML='<div class="empty">nothing yet — post something, follow a key, or check DISCOVER for nearby strangers</div>'; return }
+  let lastDay = null
+  items.slice(0, FEED_SHOWN).forEach((it, i) => {
+    const day = dayLabel(it.ts)
+    if (day !== lastDay) {
+      lastDay = day
+      const sep = document.createElement('div'); sep.className = 'daysep'
+      sep.innerHTML = `<span>${day}</span>`
+      feed.appendChild(sep)
+    }
+    feed.appendChild(card(it, { stagger: Math.min(i, 12) }))
+  })
+  wireCards(feed)
+  if (items.length > FEED_SHOWN) {
+    const more = document.createElement('div')
+    more.className = 'empty'
+    more.innerHTML = `<button class="btn">▼ LOAD OLDER (${items.length - FEED_SHOWN} MORE)</button>`
+    more.querySelector('.btn').onclick = () => { FEED_SHOWN += 40; renderFeed() }
+    feed.appendChild(more)
+  }
+}
+
+const DIAL = ['FAMILIAR', '·', '··', 'STRANGE']
+async function renderDiscover () {
+  const q = $('#search').value.trim()
+  DISC = await window.ember.discover(q)
+  PENDING.discover = 0; DISC_PENDING.clear(); updatePill()
+  NET.buckets = DISC.buckets; NET.gossip = DISC.gossipPeers; netRender()
+  const feed = $('#feed'); feed.innerHTML=''
+  const l=document.createElement('div'); l.className='daylabel'
+  if (q) l.innerHTML = `<span>NEAREST TO</span> <span data-noi18n>“${esc(q.toUpperCase().slice(0,40))}”</span>`
+  else l.textContent = 'DRIFTING THROUGH YOUR BUCKETS'
+  feed.appendChild(l)
+  if (!q) {
+    const d = document.createElement('div'); d.className = 'dialrow'
+    d.innerHTML = `<span>FAMILIAR</span><div class="radii">${[0,1,2,3].map(i => `<button class="rchip ${i===DISC.dial?'on':''}" data-d="${i}" title="${['closest to what you\'re into','a step aside','further out','the far side of your compass'][i]}">${'◆'.repeat(i+1)}</button>`).join('')}</div><span>STRANGE</span>`
+    d.querySelectorAll('.rchip').forEach(b => b.onclick = async () => { await window.ember.tasteSet({ dial: +b.dataset.d }); renderDiscover() })
+    feed.appendChild(d)
+  }
+  if (DISC.quiet && !q) {
+    const box = document.createElement('div'); box.className = 'quietbox'
+    box.innerHTML = DISC.topics
+      ? `<b>IT'S QUIET IN YOUR ROOMS.</b> <span>${DISC.topics===1 ? 'You\'re sitting in 1 topic room.' : `You're sitting in ${DISC.topics} topic rooms.`}</span> <span>They fill up as people with the same interests come online.</span> ${DISC.commons ? '<span>Meanwhile the commons trickles in so you\'re never alone.</span>' : ''}`
+      : `<b>IT'S QUIET HERE.</b> Pick a few topics and you'll sit in their rooms on the network: posts about them will drift in here.<br><button class="btn solid" id="qPick">PICK TOPICS</button>`
+    feed.appendChild(box)
+    if (box.querySelector('#qPick')) box.querySelector('#qPick').onclick = () => { go('settings'); setTimeout(() => { const t = $('#s-topics'); if (t) t.scrollIntoView({ block: 'center' }) }, 300) }
+  }
+  if (!DISC.items.length) {
+    feed.insertAdjacentHTML('beforeend', '<div class="empty">no strangers in your buckets yet. the more you post, the more meaning-space you occupy.</div>')
+    return
+  }
+  DISC.items.forEach((it, i) => feed.appendChild(card({ ...it, type: it.kind==='quote'?'quote':'post' }, { discover:true, score: it.score, stagger: i })))
+  wireCards(feed)
+}
+
+async function renderSaved () {
+  const list = await window.ember.savedList()
+  SAVED_IDS = new Set(list.map(a => a.author+':'+a.seq))
+  const feed = $('#feed'); feed.innerHTML=''
+  const l=document.createElement('div'); l.className='daylabel'; l.textContent='SAVED · RE-BROADCAST THROUGH YOU'; feed.appendChild(l)
+  if (!list.length) { feed.insertAdjacentHTML('beforeend', '<div class="empty">nothing saved. saving keeps a permanent local copy — with the author\'s tag — and you broadcast it even when they\'re gone.</div>'); return }
+  list.forEach((it, i) => feed.appendChild(card({ ...it, type:'post' }, { stagger: i })))
+  wireCards(feed)
+}
+
+/* ============ NOTIFICATIONS ============ */
+
+async function renderNotifs () {
+  const list = await window.ember.notifsList()
+  const page = $('#notifpage')
+  page.innerHTML = `<div class="ptabs"><div class="ptab on">NOTIFICATIONS</div></div>`
+  if (!list.length) { page.insertAdjacentHTML('beforeend', '<div class="empty">quiet for now. replies to your posts, DMs, and new posts from people you follow land here.</div>') }
+  for (const n of list) {
+    const row = document.createElement('div')
+    row.className = 'notifrow' + (n.read ? '' : ' unread')
+    const label = n.type==='reply' ? '◈ REPLY' : n.type==='dm' ? '✉ DM' : '▤ POST'
+    const who = `<span class="who" style="cursor:inherit">${esc(nameFor(n.from))}</span>`
+    const line = n.type==='reply' ? `${who} <span>replied to your post</span>`
+               : n.type==='dm' ? `${who} <span>sent you an encrypted message</span>`
+               : `${who} <span>posted</span>`
+    row.innerHTML = `<div class="ntype">${label}</div>
+      <div class="nbody"><div class="nline">${line}</div><div class="nsub">${esc(n.text||'')}</div></div>
+      <div class="nts">${ago(n.ts)}</div>`
+    row.onclick = () => {
+      if (n.type==='dm') openDm(n.from)
+      else if (n.type==='reply' && n.ref && n.ref.author) focusPost(n.ref.author, n.ref.seq)
+      else if (n.type==='reply') openProfile(ME.key)
+      else openProfile(n.from)
+    }
+    page.appendChild(row)
+  }
+  await window.ember.notifsMarkRead(null)
+  refreshUnread()
+}
+
+async function refreshUnread () {
+  UNREAD = await window.ember.notifsUnread()
+  $('#dot-inbox').classList.toggle('show', UNREAD.dm > 0)
+  $('#dot-feed').classList.toggle('show', UNREAD.post > 0 || PENDING.feed > 0)
+  $('#dot-notifs').classList.toggle('show', UNREAD.total > 0)
+}
+async function markRead (type) { await window.ember.notifsMarkRead(type); refreshUnread() }
+
+/* ============ INBOX RAIL ============ */
+
+let IR_COLLAPSED = false
+$('#irToggle').onclick = (e) => { e.stopPropagation(); toggleInboxRail() }
+$('#irhead').onclick = () => { if (IR_COLLAPSED) toggleInboxRail() }
+function toggleInboxRail () {
+  IR_COLLAPSED = !IR_COLLAPSED
+  $('#inboxRail').classList.toggle('collapsed', IR_COLLAPSED)
+}
+
+let IR_ACTIVE = null   // conversation open inside the rail
+let IR_REC = null      // MediaRecorder state
+
+async function renderInboxRail () {
+  const list = await window.ember.dmList()
+  const el = $('#irlist')
+  el.innerHTML = `<div class="newdm"><input id="irNewKey" placeholder="paste key to start a dm"><button class="btn" id="irNewBtn">✉</button></div>`
+  const requests = list.filter(c => c.request)
+  const convos = list.filter(c => !c.request)
+  if (requests.length) {
+    el.insertAdjacentHTML('beforeend', `<div class="dmsection">REQUESTS · ${requests.length}</div>`)
+    for (const c of requests) {
+      const row = document.createElement('div')
+      row.className = 'dmrow'
+      row.innerHTML = `<div class="n">${esc(nameFor(c.key))}</div><div class="p">${c.last?esc(dmPreview(c.last.text)):''}</div>
+        <div class="reqactions">
+          <button class="btn solid acc">ACCEPT</button>
+          <button class="btn ign">IGNORE</button>
+        </div>`
+      row.querySelector('.acc').onclick = async e => { e.stopPropagation(); await window.ember.dmAccept(c.key); openDmInRail(c.key) }
+      row.querySelector('.ign').onclick = async e => { e.stopPropagation(); await window.ember.dmIgnore(c.key); toast('IGNORED'); renderInboxRail() }
+      el.appendChild(row)
+    }
+  }
+  if (convos.length) el.insertAdjacentHTML('beforeend', `<div class="dmsection">CONVERSATIONS</div>`)
+  else if (!requests.length) el.insertAdjacentHTML('beforeend', `<div class="empty" style="padding:20px 12px">no conversations yet — hit ✉ DM on any post</div>`)
+  for (const c of convos) {
+    const row = document.createElement('div')
+    row.className = 'dmrow' + (IR_ACTIVE===c.key ? ' on':'')
+    row.innerHTML = `<div class="n">${esc(nameFor(c.key))}</div><div class="p">${c.last?esc(dmPreview(c.last.text)):''}</div>`
+    row.onclick = () => openDmInRail(c.key)
+    el.appendChild(row)
+  }
+  const nb = document.getElementById('irNewBtn')
+  if (nb) nb.onclick = () => {
+    const k = keyFrom(document.getElementById('irNewKey').value)
+    if (k) { document.getElementById('irNewKey').value=''; openDmInRail(k) } else toast('NO KEY FOUND — PASTE THE 64-CHARACTER KEY')
+  }
+}
+
+/* ============ IN-RAIL PHONE THREAD ============ */
+
+async function openDmInRail (key) {
+  IR_ACTIVE = key
+  if (IR_COLLAPSED) toggleInboxRail()
+  $('#irbody').classList.add('threading')
+  $('#irthread').classList.add('open')
+  $('#irWho').textContent = nameFor(key)
+  $('#irWho').onclick = () => openProfile(key)
+  await renderRailMsgs()
+  renderInboxRail()
+  markRead('dm')
+  setTimeout(() => $('#irText').focus(), 60)
+}
+function closeDmInRail () {
+  IR_ACTIVE = null
+  $('#irbody').classList.remove('threading')
+  $('#irthread').classList.remove('open')
+  renderInboxRail()
+}
+$('#irBack').onclick = closeDmInRail
+$('#irExpand').onclick = () => { const k = IR_ACTIVE; closeDmInRail(); openDm(k) }
+
+async function renderRailMsgs () {
+  if (!IR_ACTIVE) return
+  const msgs = await window.ember.dmOpen(IR_ACTIVE)
+  const box = $('#irmsgs'); box.innerHTML = ''
+  msgs.forEach((m, i) => {
+    const mine = m.from === ME.key
+    const b = document.createElement('div')
+    b.className = 'bubble' + (mine?' mine':'')
+    b.style.maxWidth = '85%'
+    b.style.animationDelay = Math.min(i*15, 150)+'ms'
+    b.innerHTML = bubbleHTML(m, mine)
+    box.appendChild(b)
+  })
+  wireVoice(box)
+  box.scrollTop = box.scrollHeight
+}
+
+async function railSendRaw (raw) {
+  if (!IR_ACTIVE) return
+  const r = await window.ember.dmSend(IR_ACTIVE, raw)
+  if (r.reason === 'no-key') { toast('COULDN\'T FETCH THEIR DM KEY — THEY MAY BE OFFLINE'); return }
+  if (r.queued) toast('QUEUED · DELIVERS WHEN YOU\'RE BOTH ONLINE')
+  renderRailMsgs(); renderInboxRail()
+}
+$('#irSend').onclick = () => {
+  const t = $('#irText').value.trim(); if (!t) return
+  $('#irText').value = ''
+  railSendRaw(JSON.stringify({ k:'t', d:t }))
+}
+$('#irText').addEventListener('keydown', e => { if (e.key==='Enter') $('#irSend').click() })
+
+$('#irImg').onclick = () => $('#irImgInput').click()
+$('#irImgInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  try {
+    const r = await shrinkImage(f, 800, 96)
+    railSendRaw(JSON.stringify({ k:'i', d:r.image }))
+  } catch { toast('IMAGE FAILED') }
+  e.target.value = ''
+}
+
+$('#irVoice').onclick = async () => {
+  const btn = $('#irVoice')
+  if (IR_REC) { // stop + send
+    IR_REC.stop()
+    return
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const rec = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus', audioBitsPerSecond: 24000 })
+    const chunks = []
+    rec.ondataavailable = e => chunks.push(e.data)
+    rec.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop())
+      btn.classList.remove('rec'); btn.textContent = '●'
+      clearTimeout(rec._limit)
+      IR_REC = null
+      const blob = new Blob(chunks, { type: 'audio/webm' })
+      if (blob.size > 320_000) { toast('VOICE TOO LONG'); return }
+      const fr = new FileReader()
+      fr.onload = () => railSendRaw(JSON.stringify({ k:'v', d: fr.result }))
+      fr.readAsDataURL(blob)
+    }
+    rec.start()
+    rec._limit = setTimeout(() => rec.state === 'recording' && rec.stop(), 60_000)
+    IR_REC = rec
+    btn.classList.add('rec'); btn.textContent = '■'
+    toast('RECORDING · CLICK ■ TO SEND · 60S MAX')
+  } catch { toast('MICROPHONE UNAVAILABLE') }
+}
+
+/* ============ DMs ============ */
+
+async function renderDmList () {
+  const list = await window.ember.dmList()
+  const el = $('#dmlist')
+  el.innerHTML = `<div class="newdm"><input id="newdmkey" placeholder="paste key to start a dm"><button class="btn" id="newdmbtn">✉</button></div>`
+  const requests = list.filter(c => c.request)
+  const convos = list.filter(c => !c.request)
+  if (requests.length) {
+    el.insertAdjacentHTML('beforeend', `<div class="dmsection">MESSAGE REQUESTS · ${requests.length}</div>`)
+    for (const c of requests) {
+      const row = document.createElement('div')
+      row.className = 'dmrow'
+      row.innerHTML = `<div class="n">${esc(nameFor(c.key))}</div>
+        <div class="p">${c.last?esc(dmPreview(c.last.text)):''}</div>
+        <div class="reqactions">
+          <button class="btn solid acc">ACCEPT</button>
+          <button class="btn ign">IGNORE</button>
+          <button class="btn accfl">ACCEPT + FOLLOW</button>
+        </div>`
+      row.querySelector('.acc').onclick = async e => { e.stopPropagation(); await window.ember.dmAccept(c.key); openDm(c.key) }
+      row.querySelector('.accfl').onclick = async e => { e.stopPropagation(); await window.ember.dmAccept(c.key); await window.ember.follow(c.key); toast('ACCEPTED + FOLLOWING'); openDm(c.key) }
+      row.querySelector('.ign').onclick = async e => { e.stopPropagation(); await window.ember.dmIgnore(c.key); toast('IGNORED'); renderDmList() }
+      el.appendChild(row)
+    }
+  }
+  if (convos.length) el.insertAdjacentHTML('beforeend', `<div class="dmsection">CONVERSATIONS</div>`)
+  for (const c of convos) {
+    const row = document.createElement('div')
+    row.className = 'dmrow' + (DM_ACTIVE===c.key?' on':'')
+    row.innerHTML = `<div class="n">${esc(nameFor(c.key))}</div><div class="p">${c.last?esc(dmPreview(c.last.text)):''}</div>`
+    row.onclick = () => openDm(c.key)
+    el.appendChild(row)
+  }
+  const nb = document.getElementById('newdmbtn')
+  if (nb) nb.onclick = () => {
+    const k = keyFrom(document.getElementById('newdmkey').value)
+    if (k) { document.getElementById('newdmkey').value=''; openDm(k) } else toast('NO KEY FOUND — PASTE THE 64-CHARACTER KEY')
+  }
+}
+
+async function openDm (key) {
+  go('inbox')
+  DM_ACTIVE = key
+  const msgs = await window.ember.dmOpen(key)
+  $('#dmhead').innerHTML = `${avatarHTML(key)}<span class="who" data-p="${key}">${esc(nameFor(key))}</span>
+    <span class="meta">@${key.slice(0,12)}… · E2E · QUEUED WHEN THEY'RE OFFLINE</span>`
+  $('#dmhead').querySelector('.who').onclick = () => openProfile(key)
+  const box = $('#dmmsgs'); box.innerHTML=''
+  msgs.forEach((m, i) => {
+    const mine = m.from === ME.key
+    const b = document.createElement('div')
+    b.className = 'bubble' + (mine?' mine':'')
+    b.style.animationDelay = Math.min(i*20, 200)+'ms'
+    b.innerHTML = bubbleHTML(m, mine)
+    box.appendChild(b)
+  })
+  wireVoice(box)
+  box.scrollTop = box.scrollHeight
+  $('#dmtext').disabled = false; $('#dmsend').disabled = false
+  setTimeout(() => $('#dmtext').focus(), 60)
+  renderDmList()
+  renderInboxRail()
+  markRead('dm')
+}
+
+async function sendDm () {
+  const t = $('#dmtext').value.trim()
+  if (!t || !DM_ACTIVE) return
+  $('#dmsend').disabled = true
+  const r = await window.ember.dmSend(DM_ACTIVE, JSON.stringify({ k:'t', d:t }))
+  $('#dmsend').disabled = false
+  $('#dmtext').value = ''
+  if (r.reason === 'no-key') { toast('COULDN\'T FETCH THEIR DM KEY — THEY MAY BE OFFLINE'); return }
+  if (r.queued) toast('QUEUED · DELIVERS WHEN YOU\'RE BOTH ONLINE')
+  else if (!r.sent) toast('NOT DELIVERED')
+  openDm(DM_ACTIVE)
+}
+
+/* ============ SETTINGS ============ */
+
+const THEMES = {
+  paper:    ['#e9e7e2','#ffffff','#000000'],
+  sepia:    ['#d9cfbc','#f3ecdd','#271e12'],
+  mist:     ['#d9dee2','#f4f6f7','#14171a'],
+  carbon:   ['#131311','#1c1c19','#e8e5dc'],
+  slate:    ['#0f1317','#171c22','#dfe4e9'],
+  phosphor: ['#0c110d','#121813','#86e07f'],
+  ember:    ['#151009','#1d1710','#f59e42']
+}
+
+/* ============ NEARBY — near in SPACE (Discover is near in meaning) ============ */
+// Both channels are opt-in and off by default; the engine side is nearby.js.
+// "Hide me from Nearby" stops everything at once and keeps the choices.
+let NEAR = null
+let NEAR_RADIUS = 25
+const LOCATE_ERR = {
+  denied: 'Windows won\'t share this PC\'s location. Turn on Settings → Privacy & security → Location, including "Let desktop apps access your location", or type your town below.',
+  unavailable: 'this computer can\'t tell where it is (no location service). Type your town below instead.',
+  unknown: 'the location didn\'t come through in time. Try again, or type your town below.',
+  'no-town': 'there\'s no town in Ember\'s list within ~130 km of this PC. Type the nearest one below.',
+  booting: 'Ember is still starting, try again in a moment.'
+}
+async function renderNearby (note) {
+  NEAR = await window.ember.nearState()
+  $('#dot-nearby').classList.remove('show')
+  const saved = NEAR.saved || { lan: NEAR.lan.on, area: NEAR.area.on ? NEAR.area : null }
+  if (saved.area && saved.area.radius) NEAR_RADIUS = saved.area.radius
+  const page = $('#nearpage')
+  const sw = (id, on, dis) => `<div class="switch ${on?'on':''} ${dis?'dis':''}" id="${id}"><div class="knob"></div></div>`
+  const hid = NEAR.hidden === true
+  page.innerHTML = `
+    <div class="ptabs"><div class="ptab on">NEARBY</div><div class="ptab sub">DISCOVER IS NEAR IN MEANING · THIS IS NEAR IN SPACE</div></div>
+    <div class="setrow ${hid?'hiderow on':'hiderow'}"><div class="sl"><div class="st">HIDE ME FROM NEARBY</div>
+      <div class="sd">${hid ? 'you\'re hidden: nothing is broadcast and nobody nearby can find you. your choices below are kept for when you come back.' : 'one switch to disappear from both, right now. also in the tray menu.'}</div></div>${sw('n-hide', hid)}</div>
+    <div class="nearbody ${hid?'muted':''}">
+    <div class="setrow"><div class="sl"><div class="st">SAME NETWORK</div>
+      <div class="sd">say "I'm here" on this Wi-Fi or LAN every few seconds, and see who else does. The signal never leaves the local network. Everyone on it who runs Ember sees your name and key.</div>
+      <div class="sd nearerr" id="n-lanerr"></div></div>${sw('n-lan', saved.lan)}</div>
+    <div class="setrow"><div class="sl"><div class="st">SAME AREA</div>
+      <div class="sd">Ember asks this PC where it is, picks the nearest town, and shares <b>only that town</b>. Your exact position never leaves your computer. People who opted in within your radius find you, and anyone watching that area can see your key is around there.</div>
+      <div class="nearpick">
+        <button class="btn solid" id="n-locate">◎ LOCATE ME</button>
+        <div class="radii">${NEAR.radii.map(r => `<button class="rchip ${r===NEAR_RADIUS?'on':''}" data-r="${r}">${r} KM</button>`).join('')}</div>
+        ${saved.area ? '<button class="btn" id="n-areaoff">STOP SHARING AREA</button>' : ''}
+      </div>
+      <div class="sd nearerr" id="n-locerr">${note && note.error ? esc(note.error) : ''}</div>
+      <div class="sd" id="n-areastat" style="margin-top:8px"></div>
+      <div class="nearpick typed">
+        <span class="sd">no location on this PC? type your town:</span>
+        <div class="placebox"><input id="n-place" maxlength="80" autocomplete="off" spellcheck="false" placeholder="e.g. evry · oran · munich de" value=""><div class="placelist" id="n-places"></div></div>
+      </div></div></div>
+    </div>
+    <div class="nearhead" id="n-head"></div>
+    <div id="n-people"></div>`
+
+  $('#n-hide').onclick = async (e) => {
+    const h = !e.currentTarget.classList.contains('on')
+    NEAR = await window.ember.nearSetHidden(h)
+    toast(h ? 'HIDDEN FROM NEARBY' : 'VISIBLE IN NEARBY AGAIN')
+    renderNearby()
+  }
+  $('#n-lan').onclick = async (e) => {
+    const on = !e.currentTarget.classList.contains('on')
+    NEAR = await window.ember.nearSetLan(on)
+    toast(on ? (NEAR.hidden ? 'SAME NETWORK ON — STILL HIDDEN' : 'VISIBLE ON THIS NETWORK') : 'OFF THIS NETWORK')
+    renderNearby()
+  }
+  $('#n-locate').onclick = async (e) => {
+    const b = e.currentTarget; b.disabled = true; b.textContent = '◎ LOCATING…'
+    const r = await window.ember.nearLocate(NEAR_RADIUS)
+    if (r.error) { renderNearby({ error: LOCATE_ERR[r.error] || LOCATE_ERR.unknown }); return }
+    NEAR = r.state
+    toast(`LOCATED · ${r.town.place.toUpperCase()} · ${NEAR_RADIUS} KM`)
+    renderNearby()
+  }
+  const input = $('#n-place'), list = $('#n-places')
+  let timer = null, hits = [], hl = -1
+  const pick = async (h) => {
+    list.classList.remove('open')
+    NEAR = await window.ember.nearSetArea({ place: h.place, lat: h.lat, lon: h.lon, radius: NEAR_RADIUS, source: 'typed' })
+    toast(`SHARING AREA · ${h.place.toUpperCase()} · ${NEAR_RADIUS} KM`)
+    renderNearby()
+  }
+  const draw = () => {
+    list.innerHTML = hits.map((h, i) => `<button data-i="${i}" class="${i===hl?'hl':''}"><span>${esc(h.place)}</span><span class="pp">${h.pop >= 1e6 ? (h.pop/1e6).toFixed(1)+'M' : Math.round(h.pop/1e3)+'K'}</span></button>`).join('')
+    list.classList.toggle('open', hits.length > 0)
+    list.querySelectorAll('button').forEach(b => b.onmousedown = (e) => { e.preventDefault(); pick(hits[+b.dataset.i]) })
+  }
+  input.oninput = () => {
+    clearTimeout(timer)
+    timer = setTimeout(async () => { hits = await window.ember.nearSearch(input.value); hl = hits.length ? 0 : -1; draw() }, 140)
+  }
+  input.onkeydown = (e) => {
+    if (e.key === 'ArrowDown' && hits.length) { hl = (hl + 1) % hits.length; draw(); e.preventDefault() }
+    else if (e.key === 'ArrowUp' && hits.length) { hl = (hl - 1 + hits.length) % hits.length; draw(); e.preventDefault() }
+    else if (e.key === 'Enter' && hl >= 0) { pick(hits[hl]); e.preventDefault() }
+    else if (e.key === 'Escape') { list.classList.remove('open') }
+  }
+  input.onblur = () => setTimeout(() => list.classList.remove('open'), 120)
+  page.querySelectorAll('.rchip').forEach(b => b.onclick = async () => {
+    NEAR_RADIUS = +b.dataset.r
+    page.querySelectorAll('.rchip').forEach(x => x.classList.toggle('on', x === b))
+    const a = NEAR.saved && NEAR.saved.area
+    if (a) { NEAR = await window.ember.nearSetArea({ place: a.place, lat: a.lat, lon: a.lon, radius: NEAR_RADIUS, source: a.source }); renderNearPeople() }
+  })
+  if ($('#n-areaoff')) $('#n-areaoff').onclick = async () => { NEAR = await window.ember.nearSetArea(null); toast('AREA NO LONGER SHARED'); renderNearby() }
+  renderNearPeople()
+}
+
+function renderNearPeople () {
+  if (!NEAR || !$('#n-people')) return
+  const lanErr = $('#n-lanerr')
+  if (lanErr) lanErr.textContent = NEAR.lan.on && NEAR.lan.error ? `network error: ${NEAR.lan.error} (another app may hold port 47777, or the firewall blocks it)` : ''
+  const stat = $('#n-areastat')
+  const sa = NEAR.saved && NEAR.saved.area
+  const how = sa && sa.source === 'located' ? 'from this PC\'s location' : 'typed by you'
+  if (stat) stat.innerHTML = sa
+    ? `<span>${NEAR.hidden ? 'paused (hidden) around' : 'visible around'}</span> <b data-noi18n>${esc(sa.place)}</b> · ${sa.radius} km · <span>${how}</span>${NEAR.area.on ? ` · <span>${NEAR.area.connections === 1 ? '1 area connection' : (NEAR.area.connections || 0) + ' area connections'}</span>` : ''}`
+    : 'not sharing an area'
+  const people = NEAR.people || []
+  const anyOn = NEAR.lan.on || NEAR.area.on
+  $('#n-head').textContent = NEAR.hidden ? 'HIDDEN' : !anyOn ? 'NEARBY IS OFF' : people.length ? `${people.length} NEARBY` : 'LISTENING…'
+  const box = $('#n-people')
+  if (NEAR.hidden) { box.innerHTML = '<div class="empty">you\'re hidden from Nearby. switch it off above to see and be seen again.</div>'; return }
+  if (!anyOn) { box.innerHTML = '<div class="empty">turn on SAME NETWORK, or use LOCATE ME above. both are off until you choose.</div>'; return }
+  if (!people.length) { box.innerHTML = '<div class="empty">nobody nearby yet. leave this on: people appear as soon as they come online near you.</div>'; return }
+  box.innerHTML = ''
+  for (const p of people) {
+    if (!profFor(p.key) && p.name) rememberProfile(p.key, { name: p.name })
+    const where = [
+      p.lan ? '<span class="ntag">SAME NETWORK</span>' : '',
+      p.area ? `<span class="ntag">${p.area.km < 1 ? 'SAME TOWN' : '~' + p.area.km + ' KM'} · ${esc(p.area.place.toUpperCase())}</span>` : '',
+      p.verified ? '' : '<span class="ntag warn" title="their profile hasn\'t been fetched yet, so this card\'s key can\'t be checked against it">UNCONFIRMED</span>'
+    ].join('')
+    const followed = DATA.follows.includes(p.key)
+    const row = document.createElement('div'); row.className = 'nprow'; row.dataset.k = p.key
+    row.innerHTML = `${avatarHTML(p.key)}
+      <div class="npid"><span class="who" data-p="${p.key}">${esc(nameFor(p.key))}</span>
+        <span class="meta">@${p.key.slice(0,8)}</span><div style="display:flex;gap:6px;flex-wrap:wrap">${where}</div></div>
+      <button class="btn" data-a="prof">◍ PROFILE</button>
+      ${followed ? '' : '<button class="btn solid" data-a="follow">+ FOLLOW</button>'}
+      <button class="btn" data-a="dm">✉ DM</button>`
+    row.querySelector('.who').onclick = () => openProfile(p.key)
+    row.querySelector('[data-a=prof]').onclick = () => openProfile(p.key)
+    row.querySelector('[data-a=dm]').onclick = () => openDmInRail(p.key)
+    const fb = row.querySelector('[data-a=follow]')
+    if (fb) fb.onclick = async () => { await window.ember.follow(p.key); toast('FOLLOWING ' + nameFor(p.key).toUpperCase()); await refresh(); renderNearPeople() }
+    box.appendChild(row)
+  }
+}
+
+window.ember.onNearUpdated(async (hit) => {
+  if (VIEW === 'nearby') { NEAR = await window.ember.nearState(); renderNearPeople(); return }
+  if (hit) { $('#dot-nearby').classList.add('show'); toast(`◌ ${(hit.name || hit.key.slice(0, 8)).toUpperCase()} IS NEARBY`) }
+})
+// people expire when they stop being heard; keep the open page honest
+setInterval(async () => { if (VIEW === 'nearby') { NEAR = await window.ember.nearState(); renderNearPeople() } }, 10_000)
+
+async function renderSettings () {
+  const s = await window.ember.getSettings()
+  const mb = (s.storageBytes/1048576).toFixed(1)
+  const page = $('#setpage')
+  const sw = (id, on) => `<div class="switch ${on?'on':''}" id="${id}"><div class="knob"></div></div>`
+  const themeBtns = Object.entries(THEMES).map(([k, c]) =>
+    `<div class="theme ${s.theme===k?'on':''}" data-t="${k}">
+       <div class="tsw"><span style="background:${c[0]}"></span><span style="background:${c[1]}"></span><span style="background:${c[2]}"></span></div>
+       <div class="tl">${k.toUpperCase()}</div></div>`).join('')
+  await loadTaste()
+  const T = TASTE
+  const langChips = Object.entries(UI_LANGS).map(([k, v]) => `<button class="chip ${k===LANG?'on':''}" data-ui="${k}" data-noi18n>${v[0]}</button>`).join('')
+  const readChips = Object.entries(UI_LANGS).map(([k, v]) => `<button class="chip ${T.readLangs.includes(k)?'on':''}" data-rd="${k}" data-noi18n>${v[0]}</button>`).join('')
+  const topicChips = T.catalog.map(t => `<button class="chip ${T.topics.includes(t.id)?'on':''}" data-tp="${t.id}" data-noi18n>${esc(topicLabel(t.id))}</button>`).join('')
+  const termChips = T.terms.length ? T.terms.map(x => `<button class="chip term" data-term="${attr(x.term)}" title="remove from your compass"><span data-noi18n>${esc(x.term)}</span><span class="x">×</span></button>`).join('')
+    : '<span class="sd">empty for now: it fills in as you post, reply, repost and save.</span>'
+  const avoidChips = T.avoid.map(x => `<button class="chip term neg" data-term="${attr(x.term)}" title="forget this"><span data-noi18n>${esc(x.term)}</span><span class="x">×</span></button>`).join('')
+  page.innerHTML = `
+    <div class="ptabs"><div class="ptab on">SETUP</div></div>
+    <div class="sethead">LANGUAGE</div>
+    <div class="setrow"><div class="sl"><div class="st">INTERFACE</div>
+      <div class="sd">the language Ember speaks to you in. posts stay in the language they were written in.</div></div>
+      <div class="chips">${langChips}</div></div>
+    <div class="setrow"><div class="sl"><div class="st">LANGUAGES I READ</div>
+      <div class="sd">used to tune Discover and to read your topics' seed words in the right languages</div></div>
+      <div class="chips">${readChips}</div></div>
+    <div class="setrow"><div class="sl"><div class="st">ONLY POSTS I CAN READ</div>
+      <div class="sd">hide Discover posts written in a script you don't read (Latin, Chinese, Arabic)</div></div>${sw('s-onlylangs', T.onlyMyLangs)}</div>
+    <div class="sethead">WHAT YOU'RE INTO</div>
+    <div class="setrow col" id="s-topics"><div class="sl"><div class="st">TOPICS</div>
+      <div class="sd">each topic is a room on the network: you sit in it, posts about it reach you. Ember also sits in two random decoy rooms, so nobody watching can tell which ones are really yours.</div></div>
+      <div class="chips" style="margin-top:10px">${topicChips}</div>
+      <div class="rowline"><input class="field" id="s-topictext" maxlength="280" placeholder="in your own words: e.g. analog synths, risograph zines" value="${attr(T.topicText||'')}"><button class="btn" id="s-topictextset">SET</button></div></div>
+    <div class="setrow col"><div class="sl"><div class="st">COMPASS</div>
+      <div class="sd">what Discover learned from what you post, reply to, repost and save (and from what you mute or mark not interested). It fades over a few weeks, never leaves this machine, and every word can be removed.</div></div>
+      <div class="chips" style="margin-top:10px">${termChips}</div>
+      ${avoidChips ? `<div class="sd" style="margin-top:12px">LESS OF</div><div class="chips" style="margin-top:6px">${avoidChips}</div>` : ''}
+      <div class="rowline"><button class="btn" id="s-tastereset">RESET COMPASS</button></div></div>
+    <div class="setrow"><div class="sl"><div class="st">CAMPFIRES</div>
+      <div class="sd">when you and 2+ others sit in the same topic room at the same moment, a live room lights up. Nothing in it is stored; it goes out when people leave.</div></div>${sw('s-fires', T.campfires)}</div>
+    <div class="sethead">SAFETY</div>
+    <div class="setrow"><div class="sl"><div class="st">SHARE MY BLOCKLIST</div>
+      <div class="sd">publish the keys you block in your own signed log, so people who trust your judgement can subscribe. Off = your blocks stay private (turning it off publishes an empty list).</div></div><span id="m-pub"></span></div>
+    <div class="setrow"><div class="sl"><div class="st">LISTEN TO MY CIRCLE</div>
+      <div class="sd">if two people you follow both block someone, they're hidden from your Discover; one, and they're ranked down. People you follow are never hidden.</div></div><span id="m-circle"></span></div>
+    <div class="setrow col"><div class="sl"><div class="st">SUBSCRIBED BLOCKLISTS</div>
+      <div class="sd">everyone on a list you subscribe to is hidden for you, and their posts stop travelling through you. Nothing is ever deleted or enforced on anyone else.</div></div>
+      <div class="rowline"><input class="field" id="m-subkey" placeholder="paste the key of someone whose blocklist you trust"><button class="btn" id="m-subbtn">SUBSCRIBE</button></div>
+      <div id="m-subs" style="margin-top:10px"></div></div>
+    <div class="sethead">WEB ACCESS</div>
+    <div id="webbox"></div>
+    <div class="sethead">GENERAL</div>
+    <div class="setrow"><div class="sl"><div class="st">THEME</div>
+      <div class="sd">each palette designed as tonal variants, contrast-checked — never inverted</div></div>
+      <div class="themes">${themeBtns}</div></div>
+    <div class="setrow"><div class="sl"><div class="st">COMMONS BUCKET</div>
+      <div class="sd">global rendezvous so small networks always meet. With topics picked it's a trickle: only while you have fewer than 3 gossip peers.</div></div>${sw('s-commons', s.commons)}</div>
+    <div class="setrow"><div class="sl"><div class="st">START WITH SYSTEM</div>
+      <div class="sd">launch Ember (to tray) at login, so you're always seeding and reachable</div></div>${sw('s-auto', s.autostart)}</div>
+    <div class="setrow"><div class="sl"><div class="st">KEEP DM HISTORY</div>
+      <div class="sd">store conversations on disk. off = messages exist only until the app closes</div></div>${sw('s-dm', s.keepDmHistory)}</div>
+    <div class="setrow"><div class="sl"><div class="st">RE-SEED TAIL WINDOW</div>
+      <div class="sd">blocks kept per followed feed. lower = lighter disk, shorter collective memory</div></div>
+      <input class="numfield" id="s-tail" type="number" min="20" max="5000" value="${s.tailWindow}">
+      <button class="btn" id="s-tailset">SET</button></div>
+    <div class="setrow"><div class="sl"><div class="st">STORAGE</div>
+      <div class="sd">${mb} MB on disk · ${s.savedCount} saved posts · ${s.cacheCount} gossip announcements cached · <span id="warmstat">…</span></div></div>
+      <button class="btn" id="s-clearcache">CLEAR GOSSIP CACHE</button></div>
+    <div class="setrow"><div class="sl"><div class="st">IDENTITY BACKUP</div>
+      <div class="sd">export your primary key to a file. anyone with it IS you — store it like a password. restore only works on a fresh install.</div></div>
+      ${window.EMBER_WEB ? '<span class="sd">only on the computer running Ember</span>' : `<button class="btn solid" id="s-export">EXPORT</button>
+      <button class="btn" id="s-restore">RESTORE</button>`}
+      <button class="btn" id="s-copykey">COPY PUBLIC KEY</button></div>
+    <div class="setrow"><div class="sl"><div class="st">BLOCKED &amp; MUTED</div>
+      <div class="sd" id="modlist">loading…</div></div></div>`
+  page.querySelectorAll('.theme').forEach(b => b.onclick = async () => {
+    const t = b.dataset.t
+    await window.ember.setSettings({ theme: t })
+    applyTheme(t)
+    page.querySelectorAll('.theme').forEach(x => x.classList.toggle('on', x===b))
+  })
+  const bind = (id, key) => { document.getElementById(id).onclick = async (e) => {
+    const el = e.currentTarget; const now = !el.classList.contains('on')
+    el.classList.toggle('on', now)
+    await window.ember.setSettings({ [key]: now })
+  } }
+  bind('s-commons','commons'); bind('s-dm','keepDmHistory'); bind('s-auto','autostart')
+  wireTasteSettings(page)
+  renderWebAccess()
+  document.getElementById('s-tailset').onclick = async () => {
+    await window.ember.setSettings({ tailWindow: parseInt(document.getElementById('s-tail').value)||150 })
+    toast('TAIL WINDOW SET')
+  }
+  document.getElementById('s-clearcache').onclick = async () => { await window.ember.clearCache(); toast('CACHE CLEARED'); renderSettings() }
+  document.getElementById('s-copykey').onclick = () => { navigator.clipboard.writeText(ME.key); toast('KEY COPIED') }
+  window.ember.warmCacheStats().then(w => {
+    const el = document.getElementById('warmstat')
+    if (el) el.textContent = `warm cache ${(w.bytes/1048576).toFixed(1)}/${(w.budget/1048576)|0} MB (${w.items} watched media)`
+  })
+  if (!window.EMBER_WEB) document.getElementById('s-export').onclick = async () => {
+    const ok = await window.ember.exportIdentity()
+    toast(ok ? 'IDENTITY EXPORTED — GUARD THAT FILE' : 'EXPORT CANCELLED')
+  }
+  if (!window.EMBER_WEB) document.getElementById('s-restore').onclick = async () => {
+    const k = prompt(tr('Paste the 64-char PRIMARY KEY from your backup file. Only works before this identity has posted anything.'))
+    if (!k) return
+    try {
+      const r = await window.ember.restoreIdentity(k.trim())
+      if (r && r.ok === false) toast('THIS IDENTITY ALREADY HAS HISTORY — RESTORE NEEDS A FRESH INSTALL')
+    } catch { toast('INVALID KEY') }
+  }
+  // moderation list
+  window.ember.moderation().then(mod => {
+    const el = document.getElementById('modlist')
+    if (!mod.blocked.length && !mod.muted.length) { el.textContent = 'nobody blocked or muted.'; return }
+    el.innerHTML = ''
+    for (const k of mod.blocked) {
+      const row = document.createElement('div')
+      row.innerHTML = `BLOCKED · ${esc(nameFor(k))} · ${k.slice(0,10)}… <button class="btn" style="height:22px;font-size:9px;margin-left:8px">UNBLOCK</button>`
+      row.querySelector('.btn').onclick = async () => { await window.ember.unblock(k); toast('UNBLOCKED'); renderSettings() }
+      el.appendChild(row)
+    }
+    for (const k of mod.muted) {
+      const row = document.createElement('div')
+      row.innerHTML = `MUTED · ${esc(nameFor(k))} · ${k.slice(0,10)}… <button class="btn" style="height:22px;font-size:9px;margin-left:8px">UNMUTE</button>`
+      row.querySelector('.btn').onclick = async () => { await window.ember.unmute(k); toast('UNMUTED'); renderSettings() }
+      el.appendChild(row)
+    }
+  })
+}
+
+function applyTheme (t) { document.body.dataset.theme = t }
+
+function wireTasteSettings (page) {
+  const sw = (id, on) => `<div class="switch ${on?'on':''}" id="${id}"><div class="knob"></div></div>`
+  page.querySelectorAll('[data-ui]').forEach(b => b.onclick = async () => {
+    const l = b.dataset.ui; if (l === LANG) return
+    await window.ember.tasteSet({ uiLang: l })
+    try { localStorage.setItem('emberLang', l); sessionStorage.setItem('emberView', 'settings') } catch {}
+    if (window.ember.reloadUi) window.ember.reloadUi(); else location.reload()
+  })
+  page.querySelectorAll('[data-rd]').forEach(b => b.onclick = async () => {
+    b.classList.toggle('on')
+    const langs = [...page.querySelectorAll('[data-rd].on')].map(x => x.dataset.rd)
+    if (!langs.length) { b.classList.add('on'); return }
+    TASTE = await window.ember.tasteSet({ readLangs: langs })
+  })
+  page.querySelectorAll('[data-tp]').forEach(b => b.onclick = async () => {
+    b.classList.toggle('on')
+    TASTE = await window.ember.tasteSet({ topics: [...page.querySelectorAll('[data-tp].on')].map(x => x.dataset.tp) })
+    if (VIEW === 'settings') toast('ROOMS UPDATED')
+  })
+  $('#s-topictextset').onclick = async () => { TASTE = await window.ember.tasteSet({ topicText: $('#s-topictext').value.trim() }); toast('ROOMS UPDATED') }
+  $('#s-onlylangs').onclick = async (e) => { const on = !e.currentTarget.classList.contains('on'); e.currentTarget.classList.toggle('on', on); TASTE = await window.ember.tasteSet({ onlyMyLangs: on }) }
+  $('#s-fires').onclick = async (e) => { const on = !e.currentTarget.classList.contains('on'); e.currentTarget.classList.toggle('on', on); TASTE = await window.ember.tasteSet({ campfires: on }) }
+  page.querySelectorAll('[data-term]').forEach(b => b.onclick = async () => { await window.ember.tasteForget(b.dataset.term); b.remove(); toast('REMOVED FROM YOUR COMPASS') })
+  $('#s-tastereset').onclick = async () => {
+    if (!confirm(tr('Forget everything the compass learned? Your topics stay.'))) return
+    await window.ember.tasteReset(); toast('COMPASS RESET'); renderSettings()
+  }
+  // circle moderation
+  const drawMod = (m) => {
+    if (!$('#m-pub')) return
+    $('#m-pub').innerHTML = sw('m-pubsw', m.publishBlocklist)
+    $('#m-circle').innerHTML = sw('m-circlesw', m.circleSignals)
+    $('#m-pubsw').onclick = async (e) => { const on = !e.currentTarget.classList.contains('on'); e.currentTarget.classList.toggle('on', on); drawMod(await window.ember.modSet({ publishBlocklist: on })); toast(on ? 'BLOCKLIST SHARED' : 'BLOCKLIST PRIVATE') }
+    $('#m-circlesw').onclick = async (e) => { const on = !e.currentTarget.classList.contains('on'); e.currentTarget.classList.toggle('on', on); drawMod(await window.ember.modSet({ circleSignals: on })) }
+    const box = $('#m-subs')
+    box.innerHTML = (m.subs.length ? '' : '<div class="sd">no subscriptions.</div>') + m.subs.map(x => `
+      <div class="followrow"><span class="swatch"></span><span class="k" title="${x.key}">${esc(x.name || x.key.slice(0, 10) + '…')} · ${x.count} keys</span><span class="x" data-un="${x.key}" title="unsubscribe">×</span></div>`).join('') +
+      `<div class="sd" style="margin-top:8px">${m.listHidden} hidden by your lists · ${m.circleHidden} hidden and ${m.circleSoft} ranked down by your circle</div>`
+    box.querySelectorAll('[data-un]').forEach(x => x.onclick = async () => drawMod(await window.ember.modUnsub(x.dataset.un)))
+  }
+  $('#m-subbtn').onclick = async () => {
+    const k = keyFrom($('#m-subkey').value)
+    if (!k) { toast('THAT ISN\'T A KEY'); return }
+    try { drawMod(await window.ember.modSub(k)); $('#m-subkey').value = ''; toast('SUBSCRIBED') } catch (e) { toast(String(e.message || e).replace(/^.*Error:\s*/, '').toUpperCase().slice(0, 80)) }
+  }
+  window.ember.modState().then(drawMod)
+}
+
+/* ============ WEB ACCESS ============ */
+async function renderWebAccess () {
+  const box = $('#webbox'); if (!box) return
+  let st
+  try { st = await window.ember.webState() } catch { box.innerHTML = ''; return }
+  const sw = (id, on, dis) => `<div class="switch ${on ? 'on' : ''}" id="${id}" ${dis ? 'style="opacity:.4;pointer-events:none"' : ''}><div class="knob"></div></div>`
+  const inBrowser = !!window.EMBER_WEB
+  const code = st.code ? `${st.code.slice(0, 4)} ${st.code.slice(4)}` : ''
+  const mins = st.codeExpires ? Math.max(1, Math.round((st.codeExpires - Date.now()) / 60000)) : null
+  let h = ''
+  if (inBrowser) {
+    h += `<div class="setrow"><div class="sl"><div class="st">YOU'RE USING EMBER IN A BROWSER</div>
+      <div class="sd">this page is a window onto the Ember node that serves it. Turning web access on or off, and the identity backup, happen on the computer running Ember.</div></div>
+      <button class="btn" id="w-logout">SIGN OUT</button></div>`
+  } else {
+    h += `<div class="setrow"><div class="sl"><div class="st">USE EMBER IN A BROWSER</div>
+      <div class="sd">serve this interface to web browsers. Each browser must be paired once with a code shown here, and you can sign any of them out below.</div>
+      ${st.error ? `<div class="sd nearerr">${esc(st.error)}</div>` : ''}</div>${sw('w-on', st.saved && st.saved.on)}</div>
+    <div class="setrow"><div class="sl"><div class="st">OTHER DEVICES ON MY NETWORK</div>
+      <div class="sd">let phones and laptops on the same Wi-Fi open it too. It's plain HTTP: anyone on that network can watch the traffic, so don't turn this on on public Wi-Fi.</div></div>${sw('w-lan', st.saved && st.saved.lan, !(st.saved && st.saved.on))}</div>`
+  }
+  if (st.on) {
+    h += `<div class="setrow col"><div class="sl"><div class="st">ADDRESS</div>
+      ${st.urls.map(u => `<div class="weburl" data-noi18n>${esc(u)}</div>`).join('')}</div></div>
+    <div class="setrow col"><div class="sl"><div class="st">PAIRING CODE</div>
+      <div class="sd">${st.locked ? 'pairing is paused for a few minutes after too many wrong codes.' : 'enter it in the browser you want to pair. Each code works once.'}${mins ? ` <span>${mins === 1 ? 'Expires in 1 min.' : `Expires in ${mins} min.`}</span>` : ''}</div>
+      <div class="webcode" data-noi18n>${esc(code)}</div>
+      <div class="rowline"><button class="btn" id="w-code">NEW CODE</button>${inBrowser ? '' : '<button class="btn solid" id="w-open">OPEN IN BROWSER</button>'}</div></div></div>
+    <div class="setrow col"><div class="sl"><div class="st">PAIRED BROWSERS</div>
+      ${st.devices.length ? st.devices.slice().reverse().map(d => `<div class="devrow"><b data-noi18n>${esc(d.label)}</b><span>${d.id === st.current ? 'THIS BROWSER' : `last seen ${ago(d.lastSeen || d.created)}`}</span><button class="btn" data-rev="${attr(d.id)}">SIGN OUT</button></div>`).join('')
+        : '<div class="sd">no browser paired yet.</div>'}</div></div>`
+  }
+  box.innerHTML = h
+  const b = (id, fn) => { const el = $('#' + id); if (el) el.onclick = fn }
+  b('w-on', async (e) => { const on = !e.currentTarget.classList.contains('on'); await window.ember.webSet({ on }); toast(on ? 'WEB ACCESS ON' : 'WEB ACCESS OFF'); renderWebAccess() })
+  b('w-lan', async (e) => { const lan = !e.currentTarget.classList.contains('on'); await window.ember.webSet({ lan }); renderWebAccess() })
+  b('w-code', async () => { await window.ember.webNewCode(); renderWebAccess() })
+  b('w-open', async () => { await window.ember.webOpen() })
+  b('w-logout', async () => { if (confirm(tr('Sign this browser out? You will need a new pairing code to come back.'))) window.ember.webLogout() })
+  box.querySelectorAll('[data-rev]').forEach(x => x.onclick = async () => {
+    if (x.dataset.rev === st.current && !confirm(tr('Sign this browser out? You will need a new pairing code to come back.'))) return
+    await window.ember.webRevoke(x.dataset.rev)
+    if (x.dataset.rev === st.current) location.reload(); else renderWebAccess()
+  })
+}
+window.ember.onWebUpdated && window.ember.onWebUpdated(() => { if (VIEW === 'settings') renderWebAccess() })
+
+/* ============ CAMPFIRES ============ */
+let FIRE_ACTIVE = null
+async function renderFires () {
+  const page = $('#firepage')
+  if (FIRE_ACTIVE) return renderFireChat()
+  const r = await window.ember.firesList()
+  await loadTaste()
+  const head = `<div class="ptabs"><div class="ptab on">CAMPFIRES</div><div class="ptab sub">LIVE ROOMS THAT LIGHT WHEN 3+ PEOPLE SHARE A TOPIC</div></div>`
+  if (!r.on) { page.innerHTML = head + `<div class="empty">campfires are off. turn them on in SETUP.</div>`; return }
+  if (!r.fires.length) { page.innerHTML = head + `<div class="empty">pick a few topics in SETUP: a campfire lights when you and two others sit in the same topic room at the same time.</div>`; return }
+  page.innerHTML = head + `<div class="firenote">nothing said at a fire is stored anywhere. when it goes out, its words go with it.</div>`
+  for (const f of r.fires) {
+    const row = document.createElement('div'); row.className = 'firerow' + (f.lit ? ' lit' : '')
+    const others = f.people - 1
+    const status = f.lit ? `LIT · ${f.people} HERE` : others ? 'ONE OTHER HERE · WAITING FOR ONE MORE' : 'WAITING FOR 2 MORE'
+    row.innerHTML = `<div class="flame"></div><div class="fl"><div class="ft" data-noi18n>${esc(topicLabel(f.fire))}</div>
+      <div class="fd"><span>${status}</span>${f.last ? ` · <span data-noi18n>${esc(f.last.name || '')}: ${esc(f.last.text.slice(0, 60))}</span>` : ''}</div></div>
+      ${f.lit ? '<button class="btn solid">JOIN →</button>' : ''}`
+    row.onclick = () => { if (!f.lit) { toast('NOT LIT YET · IT NEEDS 3 PEOPLE'); return } FIRE_ACTIVE = f.fire; renderFireChat() }
+    page.appendChild(row)
+  }
+}
+async function renderFireChat () {
+  const page = $('#firepage'), fire = FIRE_ACTIVE
+  const r = await window.ember.firesList()
+  const f = r.fires.find(x => x.fire === fire)
+  if (!f || !f.lit) { FIRE_ACTIVE = null; toast('THE FIRE WENT OUT'); return renderFires() }
+  const msgs = await window.ember.fireMessages(fire)
+  const keepInput = $('#fireText') ? $('#fireText').value : ''
+  page.innerHTML = `<div class="ptabs"><div class="ptab" id="fireBack" style="cursor:pointer">←</div><div class="ptab on" data-noi18n>${esc(topicLabel(fire))}</div><div class="ptab sub">${f.people} HERE</div></div>
+    <div class="firechat"><div class="firemsgs" id="fireMsgs"></div>
+    <div class="fireinput"><input id="fireText" maxlength="400" placeholder="say something to the fire…" autocomplete="off"><button class="btn solid" id="fireSend">SEND</button></div></div>`
+  const box = $('#fireMsgs')
+  box.innerHTML = msgs.length ? msgs.map(m => `<div class="fmsg ${m.mine ? 'mine' : ''}"><span class="fwho" data-p="${attr(m.author)}">${esc(m.mine ? nameFor(ME.key) : (m.name || m.author.slice(0, 8)))}</span><span class="fts">${ago(m.ts)}${m.verified ? '' : ' · UNCONFIRMED'}</span><div class="fmtext">${mdRender(m.text)}</div></div>`).join('')
+    : `<div class="empty"><span>the fire is lit. say hi to</span> ${f.names.map(n => `<span data-noi18n>${esc(n.name || n.key.slice(0, 8))}</span>`).join(', ')}</div>`
+  box.scrollTop = box.scrollHeight
+  box.querySelectorAll('.fwho').forEach(w => w.onclick = () => openProfile(w.dataset.p))
+  $('#fireBack').onclick = () => { FIRE_ACTIVE = null; renderFires() }
+  const input = $('#fireText'); input.value = keepInput; input.focus()
+  const send = async () => {
+    const t = input.value.trim(); if (!t) return
+    input.value = ''
+    try { await window.ember.fireSend(fire, t) } catch { toast('THE FIRE WENT OUT') }
+    renderFireChat()
+  }
+  $('#fireSend').onclick = send
+  input.onkeydown = e => { if (e.key === 'Enter') send() }
+}
+window.ember.onFiresUpdated && window.ember.onFiresUpdated(async (ev) => {
+  if (VIEW === 'fires') { if (!FIRE_ACTIVE || !ev.fires.length || ev.fires.includes(FIRE_ACTIVE) || ev.lit) renderFires() }
+  if (ev.lit) {
+    $('#dot-fires').classList.toggle('show', VIEW !== 'fires')
+    toast(tr('▲ A CAMPFIRE LIT UP:') + ' ' + topicLabel(ev.lit))
+  }
+})
+
+/* ============ RESTORE ============ */
+function showRestore (pending) { $('#restoreBar').classList.toggle('show', !!pending) }
+$('#restoreSkip').onclick = async () => {
+  if (!confirm(tr('Only do this if the restored identity never posted anything. If it did, starting now splits its history and followers will reject the new posts.'))) return
+  await window.ember.restoreSkip(); showRestore(false); toast('READY · YOU CAN POST')
+}
+window.ember.onRestoreState && window.ember.onRestoreState(s => { showRestore(s.pending); if (!s.pending) { toast('YOUR HISTORY IS BACK'); refresh() } })
+// any write attempted while the log is still downloading lands here
+addEventListener('unhandledrejection', e => {
+  if (String(e.reason && e.reason.message || e.reason).includes('RESTORE_PENDING')) { e.preventDefault(); showRestore(true); toast('STILL RESTORING · POSTING RESUMES WHEN YOUR HISTORY ARRIVES') }
+})
+
+/* ============ PROFILE PAGE ============ */
+
+async function openProfile (key) {
+  go('profile')
+  const p = await window.ember.profilePage(key)
+  rememberProfile(key, p.profile)
+  const name = p.profile&&p.profile.name ? p.profile.name : key.slice(0,10)
+  const joined = p.joined ? new Date(p.joined).getFullYear() : '—'
+  const page = $('#ppage')
+  page.innerHTML = `
+    <div class="banner"></div>
+    <div class="phead">
+      <div class="pavatar ${p.self?'me':''}">${p.profile&&p.profile.avatar?`<img src="${safeSrc(p.profile.avatar)}" alt="">`:esc(name[0]||'?')}</div>
+      <div class="pid">
+        <div class="pname">${esc(name)}</div>
+        <div class="phandle">@${key.slice(0,16)}… · joined ${joined}</div>
+        ${p.profile&&p.profile.status ? `<span class="pstatus">${esc(p.profile.status.toUpperCase())}</span>` : ''}
+      </div>
+      <div class="pactions">
+        ${p.self ? `<button class="btn" id="pcopy">COPY KEY</button><button class="btn" id="pedit">EDIT PROFILE</button>`
+          : (p.isFollowed
+            ? `<button class="btn" id="punfollow">UNFOLLOW</button>`
+            : `<button class="btn solid" id="pfollow">FOLLOW</button>`)
+            + `<button class="btn" id="pdm">✉ DM</button><button class="btn" id="pmute">MUTE</button><button class="btn" id="pblock">BLOCK</button>`}
+      </div>
+    </div>
+    <div class="pstats">
+      <div class="pstat"><div class="n">${p.stats.posts}</div><div class="l">POSTS</div></div>
+      <div class="pstat"><div class="n">${p.stats.following}</div><div class="l">FOLLOWING</div></div>
+      <div class="pstat"><div class="n">${p.stats.blocks}</div><div class="l">BLOCKS IN LOG</div></div>
+    </div>
+    <div class="ptabs"><div class="ptab on">POSTS</div></div>
+    <div id="pposts"></div>`
+  const pp = page.querySelector('#pposts')
+  if (!p.posts.length) pp.innerHTML = '<div class="empty">no posts synced yet — if this peer is offline, a re-seeder will fill this in.</div>'
+  p.posts.forEach((it, i) => pp.appendChild(card(it, { stagger: i })))
+  wireCards(pp)
+  if (page.querySelector('#pcopy')) page.querySelector('#pcopy').onclick = () => { navigator.clipboard.writeText(key); toast('KEY COPIED') }
+  if (page.querySelector('#pfollow')) page.querySelector('#pfollow').onclick = async () => { await window.ember.follow(key); toast('FOLLOWING'); openProfile(key); refresh() }
+  if (page.querySelector('#punfollow')) page.querySelector('#punfollow').onclick = async () => { await window.ember.unfollow(key); toast('UNFOLLOWED'); openProfile(key); refresh() }
+  if (page.querySelector('#pdm')) page.querySelector('#pdm').onclick = () => openDm(key)
+  if (page.querySelector('#pmute')) page.querySelector('#pmute').onclick = async () => { await window.ember.mute(key); toast('MUTED — HIDDEN FROM YOUR FEEDS'); refresh() }
+  if (page.querySelector('#pblock')) page.querySelector('#pblock').onclick = async () => { await window.ember.block(key); toast('BLOCKED — GONE FROM GOSSIP, DMS, FEEDS'); go('feed') }
+  if (page.querySelector('#pedit')) page.querySelector('#pedit').onclick = () => renderProfileEditor(page, p)
+}
+
+function renderProfileEditor (page, p) {
+  const old = page.querySelector('#peditbox'); if (old) { old.remove(); return }
+  const box = document.createElement('div')
+  box.id = 'peditbox'
+  box.style.cssText = 'border-bottom:1px solid var(--line);padding:16px 24px'
+  box.innerHTML = `
+    <input class="field" id="pname" placeholder="display name" maxlength="32" value="${attr(p.profile&&p.profile.name||'')}">
+    <input class="field" id="pstatus" placeholder="status" maxlength="48" value="${attr(p.profile&&p.profile.status||'')}">
+    <div style="display:flex;gap:8px">
+      <button class="btn solid" id="saveProfile">SAVE</button>
+      <button class="btn" id="pfpBtn">◲ SET PFP</button>
+      <input type="file" id="pfpInput" accept="image/*" style="display:none">
+    </div>
+    <div class="legend">choosing a picture updates your PFP immediately</div>`
+  page.querySelector('.pstats').after(box)
+  box.querySelector('#saveProfile').onclick = async () => {
+    await window.ember.setProfile({ name: box.querySelector('#pname').value.trim(), bio:'', status: box.querySelector('#pstatus').value.trim(), avatar: null })
+    toast('PROFILE SAVED'); refresh(); openProfile(ME.key)
+  }
+  box.querySelector('#pfpBtn').onclick = () => box.querySelector('#pfpInput').click()
+  box.querySelector('#pfpInput').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return
+    try {
+      const r = await shrinkImage(f, 128, 64)
+      await window.ember.setProfile({ name: box.querySelector('#pname').value.trim(), bio:'', status: box.querySelector('#pstatus').value.trim(), avatar: r.image })
+      toast('PFP UPDATED'); refresh(); openProfile(ME.key)
+    } catch { toast('IMAGE FAILED') }
+  }
+}
+
+/* ============ SIDE PANEL ============ */
+
+function renderFollows () {
+  const fl=$('#followList'); fl.innerHTML = DATA.follows.length ? '' : '<div class="legend">not following anyone yet</div>'
+  for (const k of DATA.follows) {
+    const row=document.createElement('div'); row.className='followrow'
+    row.innerHTML=`<span class="swatch"></span><span class="k" title="${k}">${esc(nameFor(k))} · ${k.slice(0,10)}…</span><span class="x" title="unfollow">×</span>`
+    row.querySelector('.k').onclick = () => openProfile(k)
+    row.querySelector('.x').onclick = async () => { await window.ember.unfollow(k); toast('UNFOLLOWED'); refresh() }
+    fl.appendChild(row)
+  }
+}
+
+/* ============ DATA ============ */
+
+function renderTopAvatar () {
+  const el = $('#topAvatar')
+  const av = ME && ME.profile && ME.profile.avatar
+  el.innerHTML = av ? `<img src="${safeSrc(av)}" alt="you">` : ''
+}
+
+async function refresh () {
+  ME = await window.ember.me()
+  if (ME.booting) {
+    $('#feed').innerHTML = '<div class="empty">◆ joining the swarm — connecting storage, DHT, and gossip layers…</div>'
+    return
+  }
+  renderTopAvatar()
+  showRestore(ME.restorePending)
+  const sl = await window.ember.savedList()
+  SAVED_IDS = new Set(sl.map(a => a.author+':'+a.seq))
+  DATA = await window.ember.timeline()
+  NET.peers = DATA.peers; if (DATA.seeders != null) NET.seeders = DATA.seeders; netRender()
+  renderFollows()
+  if (VIEW==='feed') renderFeed()
+  refreshUnread()
+}
+
+/* ============ CALM FEED ============ */
+
+function bumpPending (kind, n = 1) { PENDING[kind] += n; updatePill(); refreshUnread() }
+function updatePill () {
+  const n = VIEW==='discover' ? PENDING.discover : VIEW==='feed' ? PENDING.feed : 0
+  const pill = $('#pill')
+  if (n > 0) { $('#pillText').textContent = n===1 ? '1 NEW POST' : n+' NEW POSTS'; pill.classList.add('show') }
+  else pill.classList.remove('show')
+}
+async function applyPending () {
+  PENDING.feed = 0; PENDING.discover = 0
+  updatePill()
+  await refresh()
+  if (VIEW==='discover') await renderDiscover()
+  $('#feedScroll').scrollTop = 0
+}
+
+/* video thumbnail: 300px, quality stepped down until it fits the 20KB gossip cap */
+function captureVideoThumb (url) {
+  return new Promise(res => {
+    const vid = document.createElement('video')
+    vid.muted = true; vid.playsInline = true; vid.preload = 'auto'; vid.src = url
+    const bail = setTimeout(() => res(''), 8000)
+    vid.onloadeddata = () => { try { vid.currentTime = Math.min(0.3, (vid.duration || 1) / 2) } catch { finish() } }
+    vid.onseeked = finish
+    vid.onerror = () => { clearTimeout(bail); res('') }
+    function finish () {
+      clearTimeout(bail)
+      try {
+        const c = document.createElement('canvas')
+        const r = Math.min(1, 300 / Math.max(vid.videoWidth || 300, vid.videoHeight || 300))
+        c.width = Math.round((vid.videoWidth || 300) * r); c.height = Math.round((vid.videoHeight || 300) * r)
+        c.getContext('2d').drawImage(vid, 0, 0, c.width, c.height)
+        let d = c.toDataURL('image/jpeg', 0.55)
+        if (d.length > 19000) d = c.toDataURL('image/jpeg', 0.4)
+        if (d.length > 19000) d = c.toDataURL('image/jpeg', 0.28)
+        res(d.length <= 19000 ? d : '')
+      } catch { res('') }
+    }
+  })
+}
+
+/* ============ QUOTES ============ */
+
+function startQuote (author, seq, preview) {
+  QUOTE_REF = { author, seq }
+  $('#quotetext').textContent = 'QUOTING ' + nameFor(author).toUpperCase() + ' — “' + (preview||'').slice(0, 60) + '…”'
+  $('#quotebar').classList.add('show')
+  go('feed')
+  $('#text').focus()
+}
+$('#quoteCancel').onclick = () => { QUOTE_REF = null; $('#quotebar').classList.remove('show') }
+
+/* ============ STORIES ============ */
+
+let SVIEW = { group: null, idx: 0, timer: null }
+
+async function renderStories () {
+  const groups = await window.ember.stories()
+  const rail = $('#storiesRail')
+  rail.innerHTML = `<div class="storyhead">STORIES</div>`
+  const mine = groups.find(g => g.self)
+
+  // your tile is ALWAYS first
+  const own = document.createElement('div')
+  if (mine) {
+    own.className = 'story self unseen'
+    const av = avatarFor(ME.key)
+    own.innerHTML = `<div class="sav">${av?`<img src="${safeSrc(av)}" alt="">`:esc(nameFor(ME.key)[0]||'?')}</div>
+      <div class="sn">you</div>
+      <div class="storymenu">
+        <button data-act="see">▶ SEE STORY</button>
+        <button data-act="add">+ ADD STORY</button>
+      </div>`
+    own.querySelector('[data-act=see]').onclick = e => { e.stopPropagation(); openStories(mine) }
+    own.querySelector('[data-act=add]').onclick = e => { e.stopPropagation(); $('#storyInput').click() }
+    own.onclick = () => openStories(mine)
+    const menu = own.querySelector('.storymenu')
+    own.addEventListener('mouseenter', () => {
+      const r = own.getBoundingClientRect()
+      menu.style.left = (r.right - 6) + 'px'
+      menu.style.top = Math.max(4, Math.min(r.top, innerHeight - 90)) + 'px'
+    })
+  } else {
+    own.className = 'story add'
+    own.innerHTML = `<div class="sav">+</div><div class="sn">your story</div>`
+    own.onclick = () => $('#storyInput').click()
+  }
+  rail.appendChild(own)
+
+  // others as they come
+  for (const g of groups) {
+    if (g.self) continue
+    const el = document.createElement('div')
+    el.className = 'story unseen'
+    const av = avatarFor(g.author)
+    el.innerHTML = `<div class="sav">${av?`<img src="${safeSrc(av)}" alt="">`:esc(nameFor(g.author)[0]||'?')}</div>
+      <div class="sn" data-noi18n>${esc(nameFor(g.author))}</div>`
+    el.onclick = () => openStories(g)
+    rail.appendChild(el)
+  }
+}
+
+/* story composer: draggable text baked onto the image via canvas */
+const SC = { img: null, texts: [], sel: -1, drag: false, scale: 1 }
+const SC_COLORS = ['#ffffff', '#000000', '#e8a54b', '#b8e6b0', '#c85a19']
+
+$('#storyInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  const img = new Image()
+  img.onload = () => { openStoryComposer(img); URL.revokeObjectURL(img.src) }
+  img.onerror = () => toast('IMAGE FAILED')
+  img.src = URL.createObjectURL(f)
+  e.target.value = ''
+}
+
+function openStoryComposer (img) {
+  // downscale into working canvas (max 900px long side)
+  const r = Math.min(1, 900 / Math.max(img.width, img.height))
+  const c = $('#scanvas')
+  c.width = Math.round(img.width * r); c.height = Math.round(img.height * r)
+  SC.img = img; SC.texts = []; SC.sel = -1; SC.scale = r
+  $('#scText').value = ''; $('#scText').disabled = true; $('#scSize').disabled = true
+  const sw = $('#scSwatches')
+  sw.innerHTML = SC_COLORS.map((col, i) => `<span class="swcol ${i===0?'on':''}" data-c="${col}" style="background:${col}"></span>`).join('')
+  sw.querySelectorAll('.swcol').forEach(s => s.onclick = () => {
+    sw.querySelectorAll('.swcol').forEach(x => x.classList.toggle('on', x===s))
+    if (SC.sel >= 0) { SC.texts[SC.sel].color = s.dataset.c; drawSC() }
+  })
+  $('#scomposer').classList.add('open')
+  drawSC()
+}
+
+function drawSC () {
+  const c = $('#scanvas'); const ctx = c.getContext('2d')
+  ctx.clearRect(0, 0, c.width, c.height)
+  ctx.drawImage(SC.img, 0, 0, c.width, c.height)
+  SC.texts.forEach((t, i) => {
+    ctx.font = `700 ${t.size}px ui-monospace, Menlo, monospace`
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    ctx.lineWidth = Math.max(2, t.size / 10)
+    ctx.strokeStyle = t.color === '#000000' ? 'rgba(255,255,255,.85)' : 'rgba(0,0,0,.65)'
+    ctx.strokeText(t.text, t.x, t.y)
+    ctx.fillStyle = t.color
+    ctx.fillText(t.text, t.x, t.y)
+    if (i === SC.sel) {
+      const w = ctx.measureText(t.text).width
+      ctx.strokeStyle = t.color; ctx.lineWidth = 1; ctx.setLineDash([4, 4])
+      ctx.strokeRect(t.x - w/2 - 8, t.y - t.size/2 - 6, w + 16, t.size + 12)
+      ctx.setLineDash([])
+    }
+  })
+}
+
+$('#scAddText').onclick = () => {
+  const c = $('#scanvas')
+  const col = document.querySelector('#scSwatches .swcol.on')
+  SC.texts.push({ text: 'YOUR TEXT', x: c.width/2, y: c.height/2, size: 32, color: col ? col.dataset.c : '#ffffff' })
+  SC.sel = SC.texts.length - 1
+  $('#scText').disabled = false; $('#scSize').disabled = false
+  $('#scText').value = 'YOUR TEXT'; $('#scSize').value = 32
+  $('#scText').focus(); $('#scText').select()
+  drawSC()
+}
+$('#scText').addEventListener('input', () => {
+  if (SC.sel < 0) return
+  SC.texts[SC.sel].text = $('#scText').value || ' '
+  drawSC()
+})
+$('#scSize').addEventListener('input', () => {
+  if (SC.sel < 0) return
+  SC.texts[SC.sel].size = +$('#scSize').value
+  drawSC()
+})
+
+function scCanvasPos (ev) {
+  const c = $('#scanvas'); const r = c.getBoundingClientRect()
+  return { x: (ev.clientX - r.left) * (c.width / r.width), y: (ev.clientY - r.top) * (c.height / r.height) }
+}
+$('#scanvas').addEventListener('pointerdown', ev => {
+  const p = scCanvasPos(ev)
+  const ctx = $('#scanvas').getContext('2d')
+  SC.sel = -1
+  for (let i = SC.texts.length - 1; i >= 0; i--) {
+    const t = SC.texts[i]
+    ctx.font = `700 ${t.size}px ui-monospace, Menlo, monospace`
+    const w = ctx.measureText(t.text).width
+    if (Math.abs(p.x - t.x) < w/2 + 14 && Math.abs(p.y - t.y) < t.size/2 + 12) { SC.sel = i; break }
+  }
+  if (SC.sel >= 0) {
+    const t = SC.texts[SC.sel]
+    SC.drag = true; $('#scanvas').classList.add('dragging'); $('#scanvas').setPointerCapture(ev.pointerId)
+    $('#scText').disabled = false; $('#scSize').disabled = false
+    $('#scText').value = t.text; $('#scSize').value = t.size
+  } else { $('#scText').disabled = true; $('#scSize').disabled = true; $('#scText').value = '' }
+  drawSC()
+})
+$('#scanvas').addEventListener('pointermove', ev => {
+  if (!SC.drag || SC.sel < 0) return
+  const p = scCanvasPos(ev)
+  const c = $('#scanvas')
+  SC.texts[SC.sel].x = Math.max(10, Math.min(c.width - 10, p.x))
+  SC.texts[SC.sel].y = Math.max(10, Math.min(c.height - 10, p.y))
+  drawSC()
+})
+const scEndDrag = () => { SC.drag = false; $('#scanvas').classList.remove('dragging') }
+$('#scanvas').addEventListener('pointerup', scEndDrag)
+$('#scanvas').addEventListener('pointercancel', scEndDrag)
+
+function closeStoryComposer () { $('#scomposer').classList.remove('open'); SC.img = null; SC.texts = [] }
+$('#scClose').onclick = closeStoryComposer
+$('#scCancel').onclick = closeStoryComposer
+$('#scomposer').addEventListener('click', e => { if (e.target === $('#scomposer')) closeStoryComposer() })
+
+$('#scPost').onclick = async () => {
+  if (!SC.img) return
+  SC.sel = -1; drawSC() // hide selection box before baking
+  const c = $('#scanvas')
+  let data = c.toDataURL('image/jpeg', 0.72)
+  if (data.length > 220_000) data = c.toDataURL('image/jpeg', 0.55)
+  $('#scPost').disabled = true
+  try {
+    await window.ember.postStory(data, '')
+    toast('STORY POSTED · VISIBLE 24H TO FOLLOWERS')
+    closeStoryComposer(); renderStories()
+  } catch { toast('STORY FAILED') }
+  $('#scPost').disabled = false
+}
+
+async function openStories (group) {
+  SVIEW.group = group; SVIEW.idx = 0
+  $('#sview').classList.add('open')
+  showStory()
+}
+async function showStory () {
+  const g = SVIEW.group; if (!g) return closeStories()
+  if (SVIEW.idx >= g.stories.length) return closeStories()
+  const s = g.stories[SVIEW.idx]
+  $('#sbar').innerHTML = g.stories.map((_, i) => `<span class="${i<=SVIEW.idx?'done':''}"></span>`).join('')
+  $('#stop').innerHTML = `${avatarHTML(g.author)}<span class="who">${esc(nameFor(g.author))}</span>
+    <span class="meta">${ago(s.ts)}</span><span class="sclose" id="sclosebtn">×</span>`
+  $('#stop').querySelector('#sclosebtn').onclick = closeStories
+  $('#simg').src = ''; $('#scap').textContent = 'loading…'
+  const data = await window.ember.getStory(s.author, s.seq)
+  if (data) { $('#simg').src = data.data; $('#scap').textContent = data.caption || '' }
+  else { $('#scap').textContent = 'no holder online for this story' }
+  clearTimeout(SVIEW.timer)
+  SVIEW.timer = setTimeout(() => { SVIEW.idx++; showStory() }, 6000)
+}
+function closeStories () { clearTimeout(SVIEW.timer); $('#sview').classList.remove('open'); SVIEW.group=null }
+$('#sview').onclick = e => { if (e.target === $('#sview')) closeStories() }
+document.addEventListener('keydown', e => {
+  if (!$('#sview').classList.contains('open')) return
+  if (e.key==='Escape') closeStories()
+  if (e.key==='ArrowRight') { SVIEW.idx++; showStory() }
+  if (e.key==='ArrowLeft') { SVIEW.idx = Math.max(0, SVIEW.idx-1); showStory() }
+})
+
+/* ============ COMPOSE ============ */
+
+let PENDING_IMG = null
+let QUOTE_REF = null
+$('#imgBtn').onclick = () => $('#imgInput').click()
+$('#imgInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  try {
+    PENDING_IMG = await shrinkImage(f)
+    $('#attachpreview').src = PENDING_IMG.image
+    $('#attachmeta').textContent = `this exact image will be posted · ${(PENDING_IMG.image.length/1024|0)}KB full / ${(PENDING_IMG.thumb.length/1024|0)}KB gossip preview`
+    $('#attachwrap').classList.add('show')
+  } catch { toast('IMAGE FAILED'); PENDING_IMG=null }
+  e.target.value = ''
+}
+$('#attachRemove').onclick = () => { PENDING_IMG=null; PENDING_VID=null; $('#attachwrap').classList.remove('show'); $('#attachpreview').src='' }
+
+let PENDING_VID = null
+$('#vidBtn').onclick = () => $('#vidInput').click()
+$('#storyBtn').onclick = () => $('#storyInput').click()
+$('#vidInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  e.target.value = ''
+  // no size limit: ffmpeg (bundled) compresses whatever comes in
+  // thumbnail from first frame
+  const url = URL.createObjectURL(f)
+  const thumb = await captureVideoThumb(url)
+  URL.revokeObjectURL(url)
+  PENDING_VID = { path: window.ember.pathForFile(f), thumb }
+  PENDING_IMG = null
+  $('#attachpreview').src = thumb
+  $('#attachmeta').textContent = `video attached · ${(f.size/1048576).toFixed(1)}MB source → will be compressed to 720p on post · watchers will seed it`
+  $('#attachwrap').classList.add('show')
+}
+window.ember.onTranscodeProgress(p => {
+  $('#attachmeta').textContent = p.pct >= 100 ? 'compressed · writing chunks…' : `compressing with ffmpeg · ${p.pct}%`
+})
+
+$('#postBtn').onclick = async () => {
+  const t=$('#text').value.trim(); if(!t && !PENDING_IMG && !PENDING_VID) return
+  $('#postBtn').disabled = true
+  if (PENDING_VID) {
+    toast('COMPRESSING VIDEO — POSTS WHEN DONE')
+    const r = await window.ember.postVideo(PENDING_VID.path, t, PENDING_VID.thumb)
+    toast(`POSTED · ${(r.size/1048576).toFixed(1)}MB IN ${r.chunks} CHUNKS`)
+    PENDING_VID = null
+  } else {
+    await window.ember.post(t, PENDING_IMG&&PENDING_IMG.image, PENDING_IMG&&PENDING_IMG.thumb, QUOTE_REF)
+  }
+  QUOTE_REF = null; $('#quotebar').classList.remove('show')
+  $('#postBtn').disabled = false
+  $('#text').value=''; $('#count').textContent='0 / 560'
+  PENDING_IMG=null; $('#attachwrap').classList.remove('show'); $('#attachpreview').src=''
+  toast('POSTED · ANNOUNCED TO BUCKETS'); OWN_ACTION = Date.now(); refresh()
+}
+function wrapSel (ta, pre, post) {
+  const s = ta.selectionStart, e = ta.selectionEnd
+  const v = ta.value
+  ta.value = v.slice(0, s) + pre + v.slice(s, e) + post + v.slice(e)
+  ta.focus(); ta.selectionStart = s + pre.length; ta.selectionEnd = e + pre.length
+  ta.dispatchEvent(new Event('input'))
+}
+$('#mdB').onclick = () => wrapSel($('#text'), '**', '**')
+$('#mdI').onclick = () => wrapSel($('#text'), '*', '*')
+$('#mdS').onclick = () => wrapSel($('#text'), '~~', '~~')
+$('#mdC').onclick = () => wrapSel($('#text'), '`', '`')
+
+$('#text').addEventListener('input', e => {
+  $('#count').textContent = e.target.value.length+' / 560'
+
+})
+$('#text').addEventListener('keydown', e => { if ((e.ctrlKey||e.metaKey)&&e.key==='Enter') $('#postBtn').click() })
+let COMPOSE_PINNED = false
+$('#focusCompose').onclick = () => {
+  if (VIEW !== 'feed') go('feed')          // only rerender when actually switching views
+  COMPOSE_PINNED = true
+  $('#composeOuter').classList.remove('retracted')
+  setTimeout(() => $('#text').focus(), 140)
+}
+$('#feedScroll').addEventListener('scroll', () => {
+  const st = $('#feedScroll').scrollTop
+  if (st > 60 && !COMPOSE_PINNED) $('#composeOuter').classList.add('retracted')
+  else if (st <= 60) { $('#composeOuter').classList.remove('retracted'); COMPOSE_PINNED = false }
+}, { passive: true })
+$('#text').addEventListener('blur', () => { COMPOSE_PINNED = false })
+
+/* ============ PROFILE INPUTS ============ */
+
+$('#followBtn').onclick = async () => {
+  const k=$('#followKey').value.trim()
+  try { await window.ember.follow(k); $('#followKey').value=''; toast('FOLLOWING'); refresh() }
+  catch (e) { toast(String(e.message || e).replace(/^Error:\s*/, '').toUpperCase().slice(0, 90)) }
+}
+$('#mykey').onclick = () => { navigator.clipboard.writeText(ME.key); toast('KEY COPIED') }
+$('#followTop').onclick = () => {
+  const p = $('#followPop')
+  p.style.display = p.style.display==='block' ? 'none' : 'block'
+  if (p.style.display==='block') renderFollows()
+}
+document.addEventListener('click', e => {
+  const p = $('#followPop')
+  if (p.style.display==='block' && !p.contains(e.target) && e.target !== $('#followTop')) p.style.display='none'
+})
+
+let searchTimer
+$('#search').addEventListener('input', () => {
+  if (VIEW==='feed') renderFeed()
+  else if (VIEW==='discover') { clearTimeout(searchTimer); searchTimer=setTimeout(renderDiscover, 350) }
+})
+
+/* ============ DM INPUTS + EVENTS ============ */
+
+$('#dmsend').onclick = sendDm
+$('#dmtext').addEventListener('keydown', e => { if (e.key==='Enter') sendDm() })
+
+// The pill counts posts that really arrived. Your own actions, profile edits,
+// follows, video chunks, re-ranking (the dial, topics, blocklists) are not news.
+window.ember.onFeedUpdated((ev) => {
+  ev = ev || {}
+  if (ev.own || Date.now() - OWN_ACTION < 2000) { refresh(); return }
+  if (ev.removed) return
+  if (FIRST_LOAD || VIEW!=='feed') { refresh(); return }
+  if (ev.posts > 0) bumpPending('feed', ev.posts)
+})
+const DISC_PENDING = new Set()
+window.ember.onDiscoverUpdated((ev) => {
+  if (VIEW!=='discover') return
+  if (!DISC.items.length) { renderDiscover(); return }
+  if (!ev || !ev.fresh || DISC_PENDING.has(ev.id) || DISC.items.some(i => i.author + ':' + i.seq === ev.id)) return
+  DISC_PENDING.add(ev.id); bumpPending('discover')
+})
+window.ember.onRepliesUpdated(id => {
+  const [a, s] = id.split(':')
+  document.querySelectorAll(`.card[data-author="${a}"][data-seq="${s}"]`).forEach(el => renderThread(el, a, +s))
+  refreshUnread()
+})
+window.ember.onDmReceived(k => {
+  if (IR_ACTIVE === k) renderRailMsgs()
+  else if (VIEW==='inbox' && DM_ACTIVE===k) openDm(k)
+  else { toast('✉ NEW DM · '+nameFor(k).toUpperCase()); if (VIEW==='inbox') renderDmList(); refreshUnread() }
+  renderInboxRail()
+})
+$('#wMin').onclick = () => window.ember.winMin()
+$('#wMax').onclick = () => window.ember.winMax()
+$('#wClose').onclick = () => window.ember.winClose()
+
+window.ember.onNotif(() => refreshUnread())
+if (window.ember.onEngineReady) window.ember.onEngineReady(() => {
+  refresh().then(() => { renderStories(); renderInboxRail(); maybeOnboard() })
+})
+window.ember.onPeers(n => { NET.peers=n; netRender() })
+window.ember.onGossipPeers(n => { NET.gossip=n; netRender() })
+window.ember.onBuckets(n => { NET.buckets=n; netRender() })
+
+/* ============ ONBOARDING ============ */
+
+let OB_PFP = null, OB_UPGRADE = false
+function obGo (n) {
+  document.querySelectorAll('.obstep').forEach(s => s.classList.remove('on'))
+  document.getElementById('ob' + n).classList.add('on')
+  $('.obbox').classList.toggle('wide', n === 'T' || n === 0)
+  if (n === 3) $('#obKey').textContent = ME ? ME.key : '…'
+  if (n === 'T') drawObTopics()
+}
+// step 0: interface language + languages I read (each shown in its own script)
+let OB_LANG = null, OB_READ = new Set()
+function drawObLangs () {
+  if (!OB_LANG) { OB_LANG = TASTE.uiLang || guessLang(); OB_READ = new Set(TASTE.readLangs && TASTE.readLangs.length && TASTE.uiLang ? TASTE.readLangs : [OB_LANG]) }
+  $('#obLangs').innerHTML = Object.entries(UI_LANGS).map(([k, v]) => `<button class="langbtn ${k===OB_LANG?'on':''}" data-l="${k}" data-noi18n>${v[0]}<small>${k.toUpperCase()}</small></button>`).join('')
+  $('#obRead').innerHTML = Object.entries(UI_LANGS).map(([k, v]) => `<button class="chip ${OB_READ.has(k)?'on':''}" data-r="${k}" data-noi18n>${v[1]}</button>`).join('')
+  const READ = { ru: 'Я ТАКЖЕ ЧИТАЮ', en: 'I ALSO READ', fr: 'JE LIS AUSSI', zh: '我也能读', ar: 'أقرأ أيضًا' }
+  const GO = { ru: 'ДАЛЕЕ →', en: 'CONTINUE →', fr: 'CONTINUER →', zh: '继续 →', ar: '← متابعة' }
+  $('#obReadLabel').textContent = READ[OB_LANG]; $('#obReadLabel').dataset.noi18n = ''
+  $('#obLangGo').textContent = GO[OB_LANG]; $('#obLangGo').dataset.noi18n = ''
+  document.documentElement.dir = OB_LANG === 'ar' ? 'rtl' : 'ltr'
+  $('#obLangs').querySelectorAll('[data-l]').forEach(b => b.onclick = () => { const was = OB_LANG; OB_LANG = b.dataset.l; OB_READ.delete(was); OB_READ.add(OB_LANG); drawObLangs() })
+  $('#obRead').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { const l = b.dataset.r; if (l === OB_LANG) return; OB_READ.has(l) ? OB_READ.delete(l) : OB_READ.add(l); drawObLangs() })
+}
+$('#obLangGo').onclick = async () => {
+  delete $('#obLangGo').dataset.noi18n; $('#obLangGo').textContent = 'CONTINUE →'
+  delete $('#obReadLabel').dataset.noi18n; $('#obReadLabel').textContent = 'I ALSO READ'
+  TASTE = await window.ember.tasteSet({ uiLang: OB_LANG, readLangs: [...OB_READ] })
+  await setLanguage(OB_LANG)
+  obGo(OB_UPGRADE ? 'T' : 1)
+}
+function drawObTopics () {
+  const sel = new Set(TASTE.topics)
+  $('#obTopics').innerHTML = TASTE.catalog.map(t => `<button class="chip ${sel.has(t.id)?'on':''}" data-tp="${t.id}" data-noi18n>${esc(topicLabel(t.id))}</button>`).join('')
+  $('#obTopics').querySelectorAll('[data-tp]').forEach(b => b.onclick = () => b.classList.toggle('on'))
+  $('#obTopicText').value = TASTE.topicText || ''
+}
+$('#obTopicsGo').onclick = async () => {
+  const topics = [...document.querySelectorAll('#obTopics [data-tp].on')].map(b => b.dataset.tp)
+  TASTE = await window.ember.tasteSet({ topics, topicText: $('#obTopicText').value.trim(), onboarded: true })
+  if (OB_UPGRADE) finishOnboard()
+  else obGo(3)
+}
+$('#obPfp').onclick = () => $('#obPfpInput').click()
+$('#obPfpInput').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return
+  try {
+    const r = await shrinkImage(f, 128, 64)
+    OB_PFP = r.image
+    $('#obPfp').innerHTML = `<img src="${safeSrc(r.image)}" alt="">`
+  } catch { toast('IMAGE FAILED') }
+  e.target.value = ''
+}
+$('#obSave').onclick = async () => {
+  const name = $('#obName').value.trim()
+  if (!name) { toast('PICK A NAME — IT TRAVELS WITH YOUR POSTS'); return }
+  await window.ember.setProfile({ name, bio: '', status: $('#obStatus').value.trim(), avatar: OB_PFP })
+  await refresh()
+  obGo('T')
+}
+$('#obKey').onclick = () => { navigator.clipboard.writeText(ME.key); toast('KEY COPIED') }
+$('#obExport').onclick = async () => {
+  const ok = await window.ember.exportIdentity()
+  if (ok) { toast('BACKUP SAVED — GUARD IT'); obGo(4) }
+}
+$('#obSkip').onclick = () => obGo(4)
+function finishOnboard () {
+  $('#onboard').classList.remove('open'); renderStories()
+  window.ember.tasteSet({ onboarded: true })
+  if (VIEW === 'discover') renderDiscover()
+}
+async function maybeOnboard () {
+  if (ME && ME.booting) return // wait for the engine before judging the profile
+  if ($('#onboard').classList.contains('open')) return
+  await loadTaste()
+  const fresh = !ME || !ME.profile || !ME.profile.name
+  if (!fresh && TASTE.onboarded) return
+  // people upgrading from 2.7 get the two new steps only: language, then topics
+  OB_UPGRADE = !fresh
+  drawObLangs(); obGo(0)
+  $('#onboard').classList.add('open')
+}
+
+/* ============ BOOT ============ */
+
+window.ember.getSettings().then(s => applyTheme(s.theme || 'paper'))
+;(async () => {
+  // language first, so the first paint is already in it
+  let lang = 'ru'
+  try { lang = localStorage.getItem('emberLang') || 'ru' } catch {}
+  await loadTaste()
+  if (TASTE.uiLang) lang = TASTE.uiLang
+  await setLanguage(lang)
+  await refresh()
+  FIRST_LOAD = false; renderStories(); renderInboxRail(); maybeOnboard()
+  let back = null
+  try { back = sessionStorage.getItem('emberView'); sessionStorage.removeItem('emberView') } catch {}
+  if (back === 'settings') go('settings')
+})()
+setInterval(renderInboxRail, 30000)
+setInterval(renderStories, 60000)
+setInterval(async () => {
+  ME = await window.ember.me()
+  const t = await window.ember.timeline()
+  NET.peers = t.peers; if (t.seeders != null) NET.seeders = t.seeders; netRender()
+  DATA.profiles = t.profiles; DATA.follows = t.follows; DATA.replyCounts = t.replyCounts
+  renderFollows()
+}, 20000)
+</script>
+</body>
+</html>
